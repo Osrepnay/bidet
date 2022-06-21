@@ -8,8 +8,7 @@
 // else do nothing
 #define TRYVAL(v, rescue) \
     do { \
-        bool _r = v; \
-        if (!_r) { rescue; return _r; } \
+        if (!(v)) { rescue; return 0; } \
     } while (0)
 
 typedef struct {
