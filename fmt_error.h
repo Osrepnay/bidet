@@ -6,4 +6,4 @@ typedef struct {
     const char *text;
 } Prog;
 
-char *fmt_err (Prog, size_t, size_t, const char *);
+char *fmt_err (Prog, size_t, const char *);
