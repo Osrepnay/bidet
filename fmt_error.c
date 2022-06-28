@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,11 +47,8 @@ char *fmt_err (Prog prog, size_t offset, const char *message) {
     size_t offset_line;
     size_t offset_col;
     // populate line and col
-    bool offset_exists = offset_line_col(prog, offset, &offset_line, &offset_col);
-    if (!offset_exists) {
-        // really shouldn't happen in the first place
-        return "error while formatting: offset doesn't exist";
-    }
+    // assert is fine because invalid offsets shouldn't be given ever
+    assert(offset_line_col(prog, offset, &offset_line, &offset_col));
 
     char *err;
     int err_len = snprintf(NULL, 0, "[%s at %zu,%zu] %s",
