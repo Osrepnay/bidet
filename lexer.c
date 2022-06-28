@@ -138,7 +138,6 @@ bool lex_quote_end (LexState *s, size_t num_backticks) {
     return true;
 }
 
-// todo backslash
 bool lex_string (LexState *s, Token *tok) {
     LexState s_save = *s;
 
