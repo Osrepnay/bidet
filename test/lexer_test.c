@@ -21,10 +21,10 @@ static char *type_to_string (TokenType type) {
             return "ARROW";
         case COMMA:
             return "COMMA";
-        case S_BRACE_OPEN:
-            return "S_BRACE_OPEN";
-        case S_BRACE_CLOSE:
-            return "S_BRACE_CLOSE";
+        case BRACKET_OPEN:
+            return "BRACKET_OPEN";
+        case BRACKET_CLOSE:
+            return "BRACKET_CLOSE";
         case SEMICOLON:
             return "SEMICOLON";
         case STRING:
@@ -57,8 +57,8 @@ TEST symbol_test (void) {
     Token answers[5] = {
         { .type = ARROW        , .offset = 0, .length = 1 },
         { .type = COMMA        , .offset = 1, .length = 1 },
-        { .type = S_BRACE_OPEN , .offset = 2, .length = 1 },
-        { .type = S_BRACE_CLOSE, .offset = 3, .length = 1 },
+        { .type = BRACKET_OPEN , .offset = 2, .length = 1 },
+        { .type = BRACKET_CLOSE, .offset = 3, .length = 1 },
         { .type = SEMICOLON    , .offset = 4, .length = 1 }
     };
     Token *sym;

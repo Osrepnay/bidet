@@ -55,10 +55,10 @@ bool lex_symbol (LexState *s, Token *tok) {
             tok->type = COMMA;
             break;
         case '[':
-            tok->type = S_BRACE_OPEN;
+            tok->type = BRACKET_OPEN;
             break;
         case ']':
-            tok->type = S_BRACE_CLOSE;
+            tok->type = BRACKET_CLOSE;
             break;
         case ';':
             tok->type = SEMICOLON;
