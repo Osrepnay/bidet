@@ -63,7 +63,7 @@ TEST symbol_test (void) {
     };
     Token *sym;
     size_t len = 0;
-    ASSERTm("lex should succeed on symbols", lex("test", "+>,[];", &sym, &len));
+    ASSERTm("lex should succeed on symbols", lex("test", ">,[];", &sym, &len));
     ASSERT_EQm("lex should lex the right number of symbols", 5, len);
 
     char *message = malloc(sizeof("lex should lex x correctly"));
