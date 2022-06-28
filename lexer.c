@@ -218,7 +218,7 @@ bool lex (const char *filename, const char *text, Token **tokens, size_t *tokens
             char *message = malloc(sizeof("unexpected character: x\n"));
             // state.prog.text[state.offset] can never be \0 because it would've been caught in the loop
             sprintf(message, "unexpected character: %c\n", state.prog.text[state.offset]); // fputs doesnt newline :((
-            char *err = fmt_err(state.prog, state.offset, 1, message);
+            char *err = fmt_err(state.prog, state.offset, message);
             fputs(err, stderr);
             free(err);
             ++state.offset;
