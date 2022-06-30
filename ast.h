@@ -1,7 +1,7 @@
 typedef struct {
     enum {
-        ELEM_STR,
-        ELEM_IDENT
+        ELEM_IDENT,
+        ELEM_STR
     } type;
     char *val; // like in the token it's the same for the string and identifier
 } ASTListElem;
