@@ -72,7 +72,9 @@ TEST symbol_test (void) {
         sprintf(message, "lex should lex %c correctly", characters[i]);
         ASSERT_EQUAL_Tm(message, answers + i, sym + i, &token_type_info, NULL);
     }
+    free(message);
 
+    free_tokens(sym, len);
     PASS();
 }
 
@@ -90,6 +92,7 @@ TEST ident_test (void) {
     };
     ASSERT_EQUAL_Tm("lex should lex identifier correctly", &correct_ident, ident, &token_type_info, NULL);
 
+    free_tokens(ident, len);
     PASS();
 }
 
@@ -106,6 +109,7 @@ TEST string_test (void) {
     };
     ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str, &token_type_info, NULL);
 
+    free_tokens(str, len);
     PASS();
 }
 

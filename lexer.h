@@ -18,3 +18,4 @@ typedef struct {
 } Token;
 
 bool lex (const char *, const char *, Token **, size_t *);
+void free_tokens (Token *, size_t);

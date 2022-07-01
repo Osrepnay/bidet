@@ -226,3 +226,14 @@ bool lex (const char *filename, const char *text, Token **tokens, size_t *tokens
     }
     return !failed;
 }
+
+// frees tokens from lex given tokens and length
+// can't just free the list because of val
+void free_tokens (Token *tokens, size_t tokens_len) {
+    for (size_t i = 0; i < tokens_len; ++i) {
+        if (tokens[i].type == IDENT || tokens[i].type == STRING) {
+            free(tokens[i].val);
+        }
+    }
+    free(tokens);
+}
