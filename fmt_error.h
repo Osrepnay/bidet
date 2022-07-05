@@ -1,9 +1,4 @@
 #include <stddef.h>
-
-// program info
-typedef struct {
-    const char *filename;
-    const char *text;
-} Prog;
+#include "prog.h"
 
 char *fmt_err (Prog, size_t, const char *);

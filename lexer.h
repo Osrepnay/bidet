@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
+#include "prog.h"
 
 typedef enum {
     IDENT,
@@ -17,5 +18,5 @@ typedef struct {
     size_t length;
 } Token;
 
-bool lex (const char *, const char *, Token **, size_t *);
+bool lex (Prog prog, Token **, size_t *);
 void free_tokens (Token *, size_t);

@@ -183,10 +183,10 @@ void push_token (Token token, Token **tokens, size_t *len, size_t *cap) {
     (*tokens)[(*len)++] = token;
 }
 
-bool lex (const char *filename, const char *text, Token **tokens, size_t *tokens_len) {
+bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
     // starting state
     LexState state = (LexState) {
-        .prog = (Prog) { .filename = filename, .text = text },
+        .prog = prog,
         .offset = 0
     };
 
