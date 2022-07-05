@@ -61,9 +61,11 @@ TEST symbol_test (void) {
         { .type = BRACKET_CLOSE, .offset = 3, .length = 1 },
         { .type = SEMICOLON    , .offset = 4, .length = 1 }
     };
+    Prog prog = (Prog) { .filename = "test", .text = ">,[];" };
+    // lex returns an array of tokens, but we only use the first element
     Token *sym;
     size_t len = 0;
-    ASSERTm("lex should succeed on symbols", lex("test", ">,[];", &sym, &len));
+    ASSERTm("lex should succeed on symbols", lex(prog, &sym, &len));
     ASSERT_EQm("lex should lex the right number of symbols", 5, len);
 
     char *message = malloc(sizeof("lex should lex x correctly"));
@@ -79,10 +81,10 @@ TEST symbol_test (void) {
 }
 
 TEST ident_test (void) {
-    // lex returns an array of tokens, but we only use the first element
+    Prog prog = (Prog) { .filename = "test", .text = "a-b_0" };
     Token *ident;
     size_t len = 0;
-    ASSERTm("lex should succeed on identifier", lex("test", "a-b_0", &ident, &len));
+    ASSERTm("lex should succeed on identifier", lex(prog, &ident, &len));
 
     Token correct_ident = (Token) {
         .type = IDENT,
@@ -97,9 +99,10 @@ TEST ident_test (void) {
 }
 
 TEST string_test (void) {
+    Prog prog = (Prog) { .filename = "test", .text = "`` bar `bar``bar ``" };
     Token* str;
     size_t len = 0;
-    ASSERTm("lex should succeed on string", lex("test", "`` bar `bar``bar ``", &str, &len));
+    ASSERTm("lex should succeed on string", lex(prog, &str, &len));
 
     Token correct_str = (Token) {
         .type = STRING,
