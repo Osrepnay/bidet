@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lexer.h"
 #include "fmt_error.h"
+#include "lexer.h"
 
 // if v is false then return false
 // else do nothing
