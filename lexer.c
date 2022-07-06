@@ -8,7 +8,10 @@
 // else do nothing
 #define TRYBOOL(v, rescue) \
     do { \
-        if (!(v)) { rescue; return 0; } \
+        if (!(v)) { \
+            rescue; \
+            return 0; \
+        } \
     } while (0)
 
 typedef struct {
