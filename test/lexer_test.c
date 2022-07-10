@@ -1,4 +1,5 @@
 #include "../lexer.h"
+#include "../try.h"
 #include "greatest/greatest.h"
 
 static int token_equal_cb (const void *expd_v, const void *got_v, void *udata) {
@@ -6,11 +7,14 @@ static int token_equal_cb (const void *expd_v, const void *got_v, void *udata) {
 
     const Token *expd = (const Token *) expd_v;
     const Token *got = (const Token *) got_v;
-    if (expd->type != got->type) { return false; }
+
+    TRYBOOL(expd->type == got->type)
     if (expd->type == IDENT || expd->type == STRING) {
-        if (strcmp(expd->val, got->val) != 0) { return false; }
+        TRYBOOL(strcmp(expd->val, got->val) == 0);
     }
-    return expd->offset == got->offset && expd->length == got->length;
+    TRYBOOL(expd->offset == got->offset && expd->length == got->length);
+
+    return true;
 }
 
 static char *type_to_string (TokenType type) {
@@ -29,14 +33,16 @@ static char *type_to_string (TokenType type) {
             return "SEMICOLON";
         case STRING:
             return "STRING";
+        default:
+            return "not a type";
     }
-    return "not a type";
 }
 
 static int token_printf_cb (const void *t_v, void *udata) {
     (void) udata;
 
     const Token *t = (const Token *) t_v;
+
     // has value, print that too
     if (t->type == IDENT || t->type == STRING) {
         return printf(

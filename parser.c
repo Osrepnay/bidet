@@ -3,16 +3,9 @@
 #include <string.h>
 #include "fmt_error.h"
 #include "parser.h"
+#include "try.h"
 
 // lots of these are just token versions of their lexer equivalents
-
-#define TRYBOOL(v, rescue) \
-    do { \
-        if (!(v)) { \
-            rescue; \
-            return 0; \
-        } \
-    } while (0)
 
 // name is the same as in lexer_test but this prints it for humans
 char *type_to_string (TokenType type) {
@@ -45,19 +38,19 @@ void expected_err (ParseState s, size_t offset, const char *expected) {
 }
 
 bool peek (ParseState *s, Token *tok) {
-    TRYBOOL(s->offset != s->tokens_len, );
+    TRYBOOL(s->offset != s->tokens_len);
     *tok = s->tokens[s->offset];
     return true;
 }
 
 bool next (ParseState *s, Token *tok) {
-    TRYBOOL(peek(s, tok), );
+    TRYBOOL(peek(s, tok));
     ++s->offset;
     return true;
 }
 
 bool take_token (ParseState *s, TokenType type, Token *tok) {
-    TRYBOOL(next(s, tok), );
+    TRYBOOL(next(s, tok));
     if (tok->type != type) {
         --s->offset;
         return false;
@@ -69,7 +62,7 @@ bool take_token (ParseState *s, TokenType type, Token *tok) {
 // identical to take_token except it doesn't return the result
 bool take_token_ignore (ParseState *s, TokenType type) {
     Token tok;
-    TRYBOOL(next(s, &tok), );
+    TRYBOOL(next(s, &tok));
     if (tok.type != type) {
         --s->offset;
         return false;
@@ -87,11 +80,11 @@ void synchronize (ParseState *s) {
 bool parse_list (ParseState *s, ASTList *list) {
     ParseState s_save = *s;
 
-    TRYBOOL(take_token_ignore(s, BRACKET_OPEN), );
+    TRYBOOL(take_token_ignore(s, BRACKET_OPEN));
 
     // find elements
     Token next_token; // either close bracket or first element of list
-    TRYBOOL(peek(s, &next_token), expected_err(*s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek(s, &next_token), expected_err(*s, s->offset, "list element or close bracket"));
 
     if (next_token.type == BRACKET_CLOSE) { // no length
         ++s->offset;
@@ -103,14 +96,14 @@ bool parse_list (ParseState *s, ASTList *list) {
     // reuses next_token for list elements
     Token comma;
     do {
-        TRYBOOL(
+        TRYBOOL_R(
                 take_token_ignore(s, IDENT) || take_token_ignore(s, STRING),
                 expected_err(*s, s->offset, "list element"));
         ++list->length;
 
-        TRYBOOL(next(s, &next_token), expected_err(*s, s->offset, "list element"));
+        TRYBOOL_R(next(s, &next_token), expected_err(*s, s->offset, "list element"));
 
-        TRYBOOL(
+        TRYBOOL_R(
                 take_token_ignore(s, COMMA) || take_token_ignore(s, BRACKET_CLOSE),
                 expected_err(*s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
@@ -138,18 +131,18 @@ bool parse_list (ParseState *s, ASTList *list) {
 }
 
 bool parse_action (ParseState *s, ASTAction *action) {
-    TRYBOOL(parse_list(s, &action->reqs), );
-    TRYBOOL(take_token_ignore(s, ARROW), expected_err(*s, s->offset, "arrow"));
+    TRYBOOL(parse_list(s, &action->reqs));
+    TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(*s, s->offset, "arrow"));
 
     Token name_tok;
-    TRYBOOL(take_token(s, IDENT, &name_tok), expected_err(*s, s->offset, "identifier"));
+    TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(*s, s->offset, "identifier"));
     action->name = name_tok.val;
-    TRYBOOL(parse_list(s, &action->commands), );
+    TRYBOOL(parse_list(s, &action->commands));
 
-    TRYBOOL(take_token_ignore(s, ARROW), );
-    TRYBOOL(parse_list(s, &action->updates), );
+    TRYBOOL(take_token_ignore(s, ARROW));
+    TRYBOOL(parse_list(s, &action->updates));
 
-    TRYBOOL(take_token_ignore(s, SEMICOLON), expected_err(*s, s->offset, "semicolon"));
+    TRYBOOL_R(take_token_ignore(s, SEMICOLON), expected_err(*s, s->offset, "semicolon"));
 
     return true;
 }
