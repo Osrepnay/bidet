@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 typedef struct {
     enum {
         ELEM_IDENT,
@@ -7,7 +9,7 @@ typedef struct {
 } ASTListElem;
 
 typedef struct {
-    int length;
+    size_t length;
     ASTListElem *elems;
 } ASTList;
 
