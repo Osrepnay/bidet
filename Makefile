@@ -1,9 +1,9 @@
-.PHONY: test
 
 CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -O2
 OBJS = fmt_error.o lexer.o parser.o
 
-test: $(OBJS) lexer_test.o
+.PHONY: test
+test: $(OBJS)
 	cc $(CFLAGS) -c test/lexer_test.c -o lexer_test.o
 	cc $(OBJS) lexer_test.o -o lexer_test
 	./lexer_test
@@ -14,3 +14,7 @@ lexer.o: lexer.c lexer.h fmt_error.h prog.h try.h
 	cc $(CFLAGS) -c lexer.c -o lexer.o
 parser.o: parser.c parser.h ast.h lexer.h prog.h try.h
 	cc $(CFLAGS) -c parser.c -o parser.o
+
+.PHONY: clean
+clean:
+	-rm *.o
