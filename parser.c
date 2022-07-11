@@ -37,20 +37,20 @@ void expected_err (ParseState s, size_t offset, const char *expected) {
     free(err);
 }
 
-bool peek (ParseState *s, Token *tok) {
+bool peek_tok (ParseState *s, Token *tok) {
     TRYBOOL(s->offset != s->tokens_len);
     *tok = s->tokens[s->offset];
     return true;
 }
 
-bool next (ParseState *s, Token *tok) {
-    TRYBOOL(peek(s, tok));
+bool next_tok (ParseState *s, Token *tok) {
+    TRYBOOL(peek_tok(s, tok));
     ++s->offset;
     return true;
 }
 
 bool take_token (ParseState *s, TokenType type, Token *tok) {
-    TRYBOOL(next(s, tok));
+    TRYBOOL(next_tok(s, tok));
     if (tok->type != type) {
         --s->offset;
         return false;
@@ -62,7 +62,7 @@ bool take_token (ParseState *s, TokenType type, Token *tok) {
 // identical to take_token except it doesn't return the result
 bool take_token_ignore (ParseState *s, TokenType type) {
     Token tok;
-    TRYBOOL(next(s, &tok));
+    TRYBOOL(next_tok(s, &tok));
     if (tok.type != type) {
         --s->offset;
         return false;
@@ -74,7 +74,7 @@ bool take_token_ignore (ParseState *s, TokenType type) {
 // nexts until semicolon
 void synchronize (ParseState *s) {
     Token tok;
-    while (next(s, &tok) == true && tok.type != SEMICOLON);
+    while (next_tok(s, &tok) == true && tok.type != SEMICOLON);
 }
 
 bool parse_list (ParseState *s, ASTList *list) {
@@ -84,7 +84,7 @@ bool parse_list (ParseState *s, ASTList *list) {
 
     // find elements
     Token next_token; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &next_token), expected_err(*s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek_tok(s, &next_token), expected_err(*s, s->offset, "list element or close bracket"));
 
     if (next_token.type == BRACKET_CLOSE) { // no length
         ++s->offset;
@@ -101,7 +101,7 @@ bool parse_list (ParseState *s, ASTList *list) {
                 expected_err(*s, s->offset, "list element"));
         ++list->length;
 
-        TRYBOOL_R(next(s, &next_token), expected_err(*s, s->offset, "list element"));
+        TRYBOOL_R(next_tok(s, &next_token), expected_err(*s, s->offset, "list element"));
 
         TRYBOOL_R(
                 take_token_ignore(s, COMMA) || take_token_ignore(s, BRACKET_CLOSE),
@@ -116,7 +116,7 @@ bool parse_list (ParseState *s, ASTList *list) {
     list->elems = malloc(list->length * sizeof(ASTListElem));
     for (size_t i = 0; i < list->length; ++i) {
         Token curr_token;
-        next(s, &curr_token);
+        next_tok(s, &curr_token);
         if (curr_token.type == IDENT) {
             list->elems[i] = (ASTListElem) { .type = ELEM_IDENT, .val = curr_token.val };
         } else if (curr_token.type == STRING) {
