@@ -17,6 +17,7 @@ char *type_to_string (TokenType type) {
         case BRACKET_CLOSE: return "close bracket";
         case SEMICOLON: return "semicolon";
         case STRING: return "string";
+        default: return "unimplemented type"; // dumb!
     }
 }
 
@@ -94,7 +95,7 @@ bool parse_list (ParseState *s, ASTList *list) {
     }
 
     // reuses next_token for list elements
-    Token comma;
+    Token comma = { 0 };
     do {
         TRYBOOL_R(
                 take_token_ignore(s, IDENT) || take_token_ignore(s, STRING),
@@ -115,7 +116,7 @@ bool parse_list (ParseState *s, ASTList *list) {
 
     list->elems = malloc(list->length * sizeof(ASTListElem));
     for (size_t i = 0; i < list->length; ++i) {
-        Token curr_token;
+        Token curr_token = { 0 };
         next_tok(s, &curr_token);
         if (curr_token.type == IDENT) {
             list->elems[i] = (ASTListElem) { .type = ELEM_IDENT, .val = curr_token.val };
