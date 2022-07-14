@@ -198,7 +198,7 @@ bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
     bool failed = false;
     while (state.prog.text[state.offset] != '\0') {
         bool one_succeeded = false;
-        for (int i = 0; i < 3; ++i) {
+        for (size_t i = 0; i < sizeof(lexers) / sizeof(lexers[0]); ++i) {
             Token tok;
             if (lexers[i](&state, &tok)) {
                 one_succeeded = true;
