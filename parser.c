@@ -114,7 +114,7 @@ bool parse_list (ParseState *s, ASTList *list) {
     *s = s_save;
     ++s->offset;
 
-    list->elems = malloc(list->length * sizeof(Token));
+    list->elems = malloc(sizeof(Token) * list->length);
     for (size_t i = 0; i < list->length; ++i) {
         next_tok(s, list->elems + i);
         ++s->offset; // comma and close bracket

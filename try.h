@@ -1,6 +1,3 @@
-#ifndef TRY_H
-#define TRY_H
-
 #define TRYBOOL(v) \
 do { \
     if (!(v)) return 0; \
@@ -13,5 +10,3 @@ do { \
         return 0; \
     } \
 } while (0);
-
-#endif

@@ -5,9 +5,6 @@
 #include "lexer.h"
 #include "try.h"
 
-// if v is false then return false
-// else do nothing
-
 typedef struct {
     Prog prog; // program info
     size_t offset; // offset from beginning of file
