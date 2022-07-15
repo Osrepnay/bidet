@@ -1,21 +1,14 @@
 #include <stddef.h>
-
-typedef struct {
-    enum {
-        ELEM_IDENT,
-        ELEM_STR
-    } type;
-    char *val; // like in the token it's the same for the string and identifier
-} ASTListElem;
+#include "lexer.h"
 
 typedef struct {
     size_t length;
-    ASTListElem *elems;
+    Token *elems;
 } ASTList;
 
 typedef struct {
     ASTList reqs;
-    char *name;
+    TokenIdent name;
     ASTList commands;
     ASTList updates;
 } ASTAction;

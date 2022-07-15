@@ -114,17 +114,9 @@ bool parse_list (ParseState *s, ASTList *list) {
     *s = s_save;
     ++s->offset;
 
-    list->elems = malloc(list->length * sizeof(ASTListElem));
+    list->elems = malloc(list->length * sizeof(Token));
     for (size_t i = 0; i < list->length; ++i) {
-        Token curr_token = { 0 };
-        next_tok(s, &curr_token);
-        if (curr_token.type == IDENT) {
-            list->elems[i] = (ASTListElem) { .type = ELEM_IDENT, .val = curr_token.val };
-        } else if (curr_token.type == STRING) {
-            list->elems[i] = (ASTListElem) { .type = ELEM_STR, .val = curr_token.val };
-        }
-        // tactically ignore everything else
-
+        next_tok(s, list->elems + i);
         ++s->offset; // comma and close bracket
     }
 
@@ -137,7 +129,7 @@ bool parse_action (ParseState *s, ASTAction *action) {
 
     Token name_tok;
     TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(*s, s->offset, "identifier"));
-    action->name = name_tok.val;
+    action->name = name_tok.data.ident;
     TRYBOOL(parse_list(s, &action->commands));
 
     TRYBOOL(take_token_ignore(s, ARROW));

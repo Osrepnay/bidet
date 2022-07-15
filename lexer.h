@@ -12,8 +12,20 @@ typedef enum {
 } TokenType;
 
 typedef struct {
+    char *name;
+} TokenIdent;
+
+typedef struct {
+    char *text;
+    size_t backticks;
+} TokenString;
+
+typedef struct {
     TokenType type;
-    char *val; // string when STRING, identifier when IDENT
+    union {
+        TokenIdent ident;
+        TokenString string;
+    } data;
     size_t offset;
     size_t length;
 } Token;

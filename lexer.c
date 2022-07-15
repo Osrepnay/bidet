@@ -105,31 +105,31 @@ bool lex_ident (LexState *s, Token *tok) {
     ident[num_chars] = '\0';
 
     tok->type = IDENT;
-    tok->val = ident;
+    tok->data.ident = (TokenIdent) { ident };
     tok->offset = s_save.offset;
     tok->length = num_chars;
     return true;
 }
 
-// if given "``` " for example writes 3 to num_backticks
-bool lex_quote_start (LexState *s, size_t *num_backticks) {
+// if given "``` " for example writes 3 to backticks
+bool lex_quote_start (LexState *s, size_t *backticks) {
     LexState s_save = *s;
 
     while (take_char(s, '`')) {
-        ++*num_backticks;
+        ++*backticks;
     }
-    // if num_backticks is 0, that means that there was no quote
-    TRYBOOL_R(*num_backticks != 0, *s = s_save);
+    // if backticks is 0, that means that there was no quote
+    TRYBOOL_R(*backticks != 0, *s = s_save);
     TRYBOOL_R(take_char(s, ' '), *s = s_save);
     return true;
 }
 
-// lexes " <num_backticks `s>"
-bool lex_quote_end (LexState *s, size_t num_backticks) {
+// lexes " <backticks `s>"
+bool lex_quote_end (LexState *s, size_t backticks) {
     LexState s_save = *s;
 
     TRYBOOL(take_char(s, ' '));
-    for (size_t i = 0; i < num_backticks; ++i) {
+    for (size_t i = 0; i < backticks; ++i) {
         TRYBOOL_R(take_char(s, '`'), *s = s_save);
     }
     return true;
@@ -138,12 +138,12 @@ bool lex_quote_end (LexState *s, size_t num_backticks) {
 bool lex_string (LexState *s, Token *tok) {
     LexState s_save = *s;
 
-    size_t num_backticks = 0;
-    TRYBOOL(lex_quote_start(s, &num_backticks));
+    size_t backticks = 0;
+    TRYBOOL(lex_quote_start(s, &backticks));
 
     size_t num_chars = 0;
     char curr_char;
-    while (!lex_quote_end(s, num_backticks)) {
+    while (!lex_quote_end(s, backticks)) {
         TRYBOOL_R(next_chr(s, &curr_char), *s = s_save);
         ++num_chars;
     }
@@ -151,16 +151,16 @@ bool lex_string (LexState *s, Token *tok) {
     char *str = malloc(num_chars + 1);
     *s = s_save;
 
-    num_backticks = 0;
-    lex_quote_start(s, &num_backticks); // should never be false because we checked already
+    backticks = 0;
+    lex_quote_start(s, &backticks); // should never be false because we checked already
     for (size_t i = 0; i < num_chars; ++i) {
         TRYBOOL_R(next_chr(s, str + i), *s = s_save);
     }
-    lex_quote_end(s, num_backticks);
+    lex_quote_end(s, backticks);
     str[num_chars] = '\0';
 
     tok->type = STRING;
-    tok->val = str;
+    tok->data.string = (TokenString) { .text = str, .backticks = backticks };
     tok->offset = s_save.offset;
     tok->length = s->offset - s_save.offset;
     return true;
@@ -228,8 +228,10 @@ bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
 // can't just free the list because of val
 void free_tokens (Token *tokens, size_t tokens_len) {
     for (size_t i = 0; i < tokens_len; ++i) {
-        if (tokens[i].type == IDENT || tokens[i].type == STRING) {
-            free(tokens[i].val);
+        if (tokens[i].type == IDENT) {
+            free(tokens[i].data.ident.name);
+        } else if (tokens[i].type == STRING) {
+            free (tokens[i].data.string.text);
         }
     }
     free(tokens);

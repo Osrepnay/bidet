@@ -9,8 +9,10 @@ static int token_equal_cb (const void *expd_v, const void *got_v, void *udata) {
     const Token *got = (const Token *) got_v;
 
     TRYBOOL(expd->type == got->type)
-    if (expd->type == IDENT || expd->type == STRING) {
-        TRYBOOL(strcmp(expd->val, got->val) == 0);
+    if (expd->type == IDENT) {
+        TRYBOOL(strcmp(expd->data.ident.name, got->data.ident.name) == 0);
+    } else if (expd->type == STRING) {
+        TRYBOOL(strcmp(expd->data.string.text, got->data.string.text) == 0);
     }
     TRYBOOL(expd->offset == got->offset && expd->length == got->length);
 
@@ -46,8 +48,25 @@ static int token_printf_cb (const void *t_v, void *udata) {
     // has value, print that too
     if (t->type == IDENT || t->type == STRING) {
         return printf(
-            "Token { .type = %s, .val = %s, .offset = %zu, .length = %zu }",
-            type_to_string(t->type), t->val, t->offset, t->length
+            "Token { .type = %s, .data.ident = TokenIdent { .name = %s }, .offset = %zu, .length = %zu }",
+            type_to_string(t->type), t->data.ident.name, t->offset, t->length
+        );
+    } else if (t->type == STRING) {
+        char *backticks = malloc(t->data.string.backticks + 1);
+        for (size_t i = 0; i < t->data.string.backticks; ++i) {
+            backticks[i] = '`';
+        }
+        backticks[t->data.string.backticks] = '\0';;
+
+        return printf(
+            "Token { "
+                ".type = %s, "
+                ".data.string = TokenString { .text = %s%s%s, .backticks = %zu }, "
+                ".offset = %zu, .length = %zu "
+            "}",
+            type_to_string(t->type),
+            backticks, t->data.string.text, backticks, t->data.string.backticks,
+            t->offset, t->length
         );
     } else {
         return printf(
@@ -94,7 +113,7 @@ TEST ident_test (void) {
 
     Token correct_ident = (Token) {
         .type = IDENT,
-        .val = "a-b_0",
+        .data.ident = (TokenIdent) { "a-b_0" },
         .offset = 0,
         .length = strlen("a-b_0")
     };
@@ -105,16 +124,16 @@ TEST ident_test (void) {
 }
 
 TEST string_test (void) {
-    Prog prog = (Prog) { .filename = "test", .text = "`` bar `bar``bar ``" };
+    Prog prog = (Prog) { .filename = "test", .text = "`` bar `bar` bar ``" };
     Token* str;
     size_t len = 0;
     ASSERTm("lex should succeed on string", lex(prog, &str, &len));
 
     Token correct_str = (Token) {
         .type = STRING,
-        .val = "bar `bar``bar",
+        .data.string = (TokenString) { .text = "bar `bar` bar", .backticks = 2 },
         .offset = 0,
-        .length = strlen("`` bar `bar``bar ``")
+        .length = strlen("`` bar `bar` bar ``")
     };
     ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str, &token_type_info, NULL);
 
