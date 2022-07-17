@@ -46,7 +46,7 @@ static int token_printf_cb (const void *t_v, void *udata) {
     const Token *t = (const Token *) t_v;
 
     // has value, print that too
-    if (t->type == IDENT || t->type == STRING) {
+    if (t->type == IDENT) {
         return printf(
             "Token { .type = %s, .data.ident = TokenIdent { .name = %s }, .offset = %zu, .length = %zu }",
             type_to_string(t->type), t->data.ident.name, t->offset, t->length
@@ -61,7 +61,7 @@ static int token_printf_cb (const void *t_v, void *udata) {
         return printf(
             "Token { "
                 ".type = %s, "
-                ".data.string = TokenString { .text = %s%s%s, .backticks = %zu }, "
+                ".data.string = TokenString { .text = %s %s %s, .backticks = %zu }, "
                 ".offset = %zu, .length = %zu "
             "}",
             type_to_string(t->type),
