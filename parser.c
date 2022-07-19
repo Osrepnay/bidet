@@ -8,7 +8,7 @@
 // lots of these are just token versions of their lexer equivalents
 
 // name is the same as in lexer_test but this prints it for humans
-char *type_to_string (TokenType type) {
+static char *type_to_string (TokenType type) {
     switch (type) {
         case IDENT: return "identifier";
         case ARROW: return "arrow";
@@ -29,7 +29,7 @@ typedef struct {
 } ParseState;
 
 // reports error at s's offset
-void expected_err (ParseState s, size_t offset, const char *expected) {
+static void expected_err (ParseState s, size_t offset, const char *expected) {
     char *got = offset >= s.tokens_len ? "EOF" : type_to_string(s.tokens[offset].type);
     char *message = malloc(sizeof("expected , got \n") + strlen(expected) + strlen(got));
     sprintf(message, "expected %s, got %s\n", expected, got);
@@ -38,20 +38,20 @@ void expected_err (ParseState s, size_t offset, const char *expected) {
     free(err);
 }
 
-bool peek_tok (ParseState *s, Token *tok) {
+static bool peek (ParseState *s, Token *tok) {
     TRYBOOL(s->offset != s->tokens_len);
     *tok = s->tokens[s->offset];
     return true;
 }
 
-bool next_tok (ParseState *s, Token *tok) {
-    TRYBOOL(peek_tok(s, tok));
+static bool next (ParseState *s, Token *tok) {
+    TRYBOOL(peek(s, tok));
     ++s->offset;
     return true;
 }
 
-bool take_token (ParseState *s, TokenType type, Token *tok) {
-    TRYBOOL(next_tok(s, tok));
+static bool take_token (ParseState *s, TokenType type, Token *tok) {
+    TRYBOOL(next(s, tok));
     if (tok->type != type) {
         --s->offset;
         return false;
@@ -61,9 +61,9 @@ bool take_token (ParseState *s, TokenType type, Token *tok) {
 }
 
 // identical to take_token except it doesn't return the result
-bool take_token_ignore (ParseState *s, TokenType type) {
+static bool take_token_ignore (ParseState *s, TokenType type) {
     Token tok;
-    TRYBOOL(next_tok(s, &tok));
+    TRYBOOL(next(s, &tok));
     if (tok.type != type) {
         --s->offset;
         return false;
@@ -73,28 +73,28 @@ bool take_token_ignore (ParseState *s, TokenType type) {
 }
 
 // nexts until semicolon
-void synchronize (ParseState *s) {
+static void synchronize (ParseState *s) {
     Token tok;
-    while (next_tok(s, &tok) == true && tok.type != SEMICOLON);
+    while (next(s, &tok) == true && tok.type != SEMICOLON);
 }
 
-bool parse_list (ParseState *s, ASTList *list) {
+static bool parse_list (ParseState *s, ASTList *list) {
     ParseState s_save = *s;
 
     TRYBOOL(take_token_ignore(s, BRACKET_OPEN));
 
     // find elements
-    Token next_token; // either close bracket or first element of list
-    TRYBOOL_R(peek_tok(s, &next_token), expected_err(*s, s->offset, "list element or close bracket"));
+    Token nexten; // either close bracket or first element of list
+    TRYBOOL_R(peek(s, &nexten), expected_err(*s, s->offset, "list element or close bracket"));
 
-    if (next_token.type == BRACKET_CLOSE) { // no length
+    if (nexten.type == BRACKET_CLOSE) { // no length
         ++s->offset;
         list->length = 0;
         list->elems = malloc(0); // :troll:
         return true;
     }
 
-    // reuses next_token for list elements
+    // reuses nexten for list elements
     Token comma = { 0 };
     do {
         TRYBOOL_R(
@@ -102,7 +102,7 @@ bool parse_list (ParseState *s, ASTList *list) {
                 expected_err(*s, s->offset, "list element"));
         ++list->length;
 
-        TRYBOOL_R(next_tok(s, &next_token), expected_err(*s, s->offset, "list element"));
+        TRYBOOL_R(next(s, &nexten), expected_err(*s, s->offset, "list element"));
 
         TRYBOOL_R(
                 take_token_ignore(s, COMMA) || take_token_ignore(s, BRACKET_CLOSE),
@@ -116,14 +116,14 @@ bool parse_list (ParseState *s, ASTList *list) {
 
     list->elems = malloc(sizeof(Token) * list->length);
     for (size_t i = 0; i < list->length; ++i) {
-        next_tok(s, list->elems + i);
+        next(s, list->elems + i);
         ++s->offset; // comma and close bracket
     }
 
     return true;
 }
 
-bool parse_action (ParseState *s, ASTAction *action) {
+static bool parse_action (ParseState *s, ASTAction *action) {
     TRYBOOL(parse_list(s, &action->reqs));
     TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(*s, s->offset, "arrow"));
 
@@ -140,7 +140,7 @@ bool parse_action (ParseState *s, ASTAction *action) {
     return true;
 }
 
-void push_action (ASTAction action, ASTAction **actions, size_t *len, size_t *cap) {
+static void push_action (ASTAction action, ASTAction **actions, size_t *len, size_t *cap) {
     if (*len >= *cap) {
         *actions = realloc(*actions , sizeof(ASTAction) * (*cap *= 2));
     }

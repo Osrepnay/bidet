@@ -11,7 +11,7 @@ typedef struct {
 } LexState;
 
 // get next char without consuming input
-bool peek_chr (LexState *s, char *chr) {
+static bool peek_chr (LexState *s, char *chr) {
     char c = s->prog.text[s->offset];
     TRYBOOL(c != '\0');
     *chr = c;
@@ -20,13 +20,13 @@ bool peek_chr (LexState *s, char *chr) {
 
 // get next char; fails on eof (\0)
 // when peek fails it doesn' increment offset
-bool next_chr (LexState *s, char *chr) {
+static bool next_chr (LexState *s, char *chr) {
     TRYBOOL(peek_chr(s, chr));
     ++s->offset;
     return true;
 }
 
-bool take_char (LexState *s, char chr) {
+static bool take_char (LexState *s, char chr) {
     char c;
     TRYBOOL(next_chr(s, &c));
     if (c != chr) {
@@ -38,7 +38,7 @@ bool take_char (LexState *s, char chr) {
 }
 
 // parse misc symbols
-bool lex_symbol (LexState *s, Token *tok) {
+static bool lex_symbol (LexState *s, Token *tok) {
     char sym;
     TRYBOOL(peek_chr(s, &sym));
     switch (sym) {
@@ -67,14 +67,14 @@ bool lex_symbol (LexState *s, Token *tok) {
 }
 
 // TODO unicode or something
-bool valid_ident_char (char c) {
+static bool valid_ident_char (char c) {
     return ('0' <= c && c <= '9') ||
         ('A' <= c && c <= 'Z') ||
         ('a' <= c && c <= 'z') ||
         c == '-' || c == '_';
 }
 
-bool lex_ident (LexState *s, Token *tok) {
+static bool lex_ident (LexState *s, Token *tok) {
     LexState s_save = *s; // save for resetting
 
     // first find number of chars
@@ -109,7 +109,7 @@ bool lex_ident (LexState *s, Token *tok) {
 }
 
 // if given "``` " for example writes 3 to backticks
-bool lex_quote_start (LexState *s, size_t *backticks) {
+static bool lex_quote_start (LexState *s, size_t *backticks) {
     LexState s_save = *s;
 
     while (take_char(s, '`')) {
@@ -122,7 +122,7 @@ bool lex_quote_start (LexState *s, size_t *backticks) {
 }
 
 // lexes " <backticks `s>"
-bool lex_quote_end (LexState *s, size_t backticks) {
+static bool lex_quote_end (LexState *s, size_t backticks) {
     LexState s_save = *s;
 
     TRYBOOL(take_char(s, ' '));
@@ -132,7 +132,7 @@ bool lex_quote_end (LexState *s, size_t backticks) {
     return true;
 }
 
-bool lex_string (LexState *s, Token *tok) {
+static bool lex_string (LexState *s, Token *tok) {
     LexState s_save = *s;
 
     size_t backticks = 0;
@@ -163,13 +163,13 @@ bool lex_string (LexState *s, Token *tok) {
     return true;
 }
 
-bool take_whitespace (LexState *s) {
+static bool take_whitespace (LexState *s) {
     while (take_char(s, ' ') || take_char(s, '\t') || take_char(s, '\n') || take_char(s, '\r'));
     return true;
 }
 
 // push to tokens, given length and capacity
-void push_token (Token token, Token **tokens, size_t *len, size_t *cap) {
+static void push_token (Token token, Token **tokens, size_t *len, size_t *cap) {
     // expand capacity when on the edge of overflowing
     if (*len >= *cap) {
         *tokens = realloc(*tokens, sizeof(Token) * (*cap *= 2));
