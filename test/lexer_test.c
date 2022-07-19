@@ -76,7 +76,7 @@ static int token_printf_cb (const void *t_v, void *udata) {
     }
 }
 
-static greatest_type_info token_type_info = (greatest_type_info) { .equal = token_equal_cb, .print = token_printf_cb };
+static greatest_type_info token_type_info = { .equal = token_equal_cb, .print = token_printf_cb };
 
 TEST symbol_test (void) {
     Token answers[5] = {
