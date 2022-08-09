@@ -84,17 +84,17 @@ static bool parse_list (ParseState *s, ASTList *list) {
     TRYBOOL(take_token_ignore(s, BRACKET_OPEN));
 
     // find elements
-    Token nexten; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &nexten), expected_err(*s, s->offset, "list element or close bracket"));
+    Token next_tok; // either close bracket or first element of list
+    TRYBOOL_R(peek(s, &next_tok), expected_err(*s, s->offset, "list element or close bracket"));
 
-    if (nexten.type == BRACKET_CLOSE) { // no length
+    if (next_tok.type == BRACKET_CLOSE) { // no length
         ++s->offset;
         list->length = 0;
         list->elems = malloc(0); // :troll:
         return true;
     }
 
-    // reuses nexten for list elements
+    // reuses next_tok for list elements
     Token comma = { 0 };
     do {
         TRYBOOL_R(
@@ -102,7 +102,7 @@ static bool parse_list (ParseState *s, ASTList *list) {
                 expected_err(*s, s->offset, "list element"));
         ++list->length;
 
-        TRYBOOL_R(next(s, &nexten), expected_err(*s, s->offset, "list element"));
+        TRYBOOL_R(next(s, &next_tok), expected_err(*s, s->offset, "list element"));
 
         TRYBOOL_R(
                 take_token_ignore(s, COMMA) || take_token_ignore(s, BRACKET_CLOSE),
