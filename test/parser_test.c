@@ -7,10 +7,10 @@ static int astlist_equal (ASTList expd, ASTList got) {
     for (size_t i = 0; i < expd.length; ++i) {
         TRYBOOL(expd.elems[i].type == got.elems[i].type);
         if (expd.elems[i].type == IDENT) { // only need to check expd because got type is same
-            TRYBOOL(expd.elems[i].data.ident.name == got.elems[i].data.ident.name);
+            TRYBOOL(strcmp(expd.elems[i].data.ident.name, got.elems[i].data.ident.name) == 0);
         } else if (expd.elems[i].type == STRING) {
             TRYBOOL(expd.elems[i].data.string.backticks == got.elems[i].data.string.backticks);
-            TRYBOOL(expd.elems[i].data.string.text == got.elems[i].data.string.text);
+            TRYBOOL(strcmp(expd.elems[i].data.string.text, got.elems[i].data.string.text) == 0);
         }
     }
     return true;
@@ -88,9 +88,9 @@ TEST action_test (void) {
     // shouldn't really fail because lexer tests should run first
     ASSERTm("lex should succeed on action", lex(prog, &action_toks, &action_toks_len));
 
-    ASTAction *list_action;
+    ASTAction *actions;
     size_t actions_len = 0;
-    ASSERTm("parse should succeed on action", parse(prog, action_toks, action_toks_len, &list_action, &actions_len));
+    ASSERTm("parse should succeed on action", parse(prog, action_toks, action_toks_len, &actions, &actions_len));
 
     ASTAction correct_action = (ASTAction) {
        .reqs = (ASTList) {
@@ -125,7 +125,7 @@ TEST action_test (void) {
            }
        }
     };
-    ASSERT_EQUAL_Tm("parse should parse action correctly", &correct_action, list_action, &astaction_type_info, NULL);
+    ASSERT_EQUAL_Tm("parse should parse action correctly", &correct_action, actions, &astaction_type_info, NULL);
 
     PASS();
 }

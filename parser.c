@@ -156,6 +156,8 @@ bool parse (Prog prog, const Token *tokens, size_t tokens_len, ASTAction **actio
     bool return_res = true;
 
     size_t actions_capacity = 2;
+    *actions = malloc(sizeof(ASTAction) * 2);
+
     while (state.offset < state.tokens_len) {
         ASTAction action = { 0 };
         if (!parse_action(&state, &action)) {
