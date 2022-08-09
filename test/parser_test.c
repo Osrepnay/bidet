@@ -30,11 +30,13 @@ static int astaction_equal_cb (const void *expd_v, const void *got_v, void *udat
 }
 
 static int astlist_printf (ASTList t) {
+    putchar('[');
+
     for (size_t i = 0; i < t.length; ++i) {
         Token elem = t.elems[i];
         switch (elem.type) {
             case IDENT:
-                TRYBOOL(puts(elem.data.ident.name) >= 0);
+                TRYBOOL(fputs(elem.data.ident.name, stdout) >= 0);
                 break;
             case STRING: {
                 char *backticks = malloc(elem.data.string.backticks + 1);
@@ -49,7 +51,13 @@ static int astlist_printf (ASTList t) {
             default:
                 return -1; // i think this is how it works
         }
+        // we don't want a trailing comma
+        if (i < t.length - 1) {
+            fputs(", ", stdout);
+        }
     }
+
+    putchar(']');
 
     return 0;
 }
