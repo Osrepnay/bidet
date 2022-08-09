@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -O2
+CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -Og -g
 BUILD_DIR = build
 OBJS = $(BUILD_DIR)/fmt_error.o $(BUILD_DIR)/lexer.o $(BUILD_DIR)/parser.o
 
