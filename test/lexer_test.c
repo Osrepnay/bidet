@@ -141,14 +141,8 @@ TEST string_test (void) {
     PASS();
 }
 
-GREATEST_MAIN_DEFS();
-
-int main (int argc, char **argv) {
-    GREATEST_MAIN_BEGIN();
-
+GREATEST_SUITE(lexer_suite) {
     RUN_TEST(symbol_test);
     RUN_TEST(ident_test);
     RUN_TEST(string_test);
-
-    GREATEST_MAIN_END();
 }
