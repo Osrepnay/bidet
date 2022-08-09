@@ -7,9 +7,10 @@ static int astlist_equal (ASTList expd, ASTList got) {
     for (size_t i = 0; i < expd.length; ++i) {
         TRYBOOL(expd.elems[i].type == got.elems[i].type);
         if (expd.elems[i].type == IDENT) { // only need to check expd because got type is same
-            TRYBOOL(expd.elems[i].data.ident.name == got.elems[i].data.string.text);
+            TRYBOOL(expd.elems[i].data.ident.name == got.elems[i].data.ident.name);
         } else if (expd.elems[i].type == STRING) {
             TRYBOOL(expd.elems[i].data.string.backticks == got.elems[i].data.string.backticks);
+            TRYBOOL(expd.elems[i].data.string.text == got.elems[i].data.string.text);
         }
     }
     return true;
