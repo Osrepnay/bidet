@@ -94,18 +94,15 @@ static bool parse_list (ParseState *s, ASTList *list) {
         return true;
     }
 
-    // reuses next_tok for list elements
-    Token comma = { 0 };
+    Token comma;
     do {
         TRYBOOL_R(
                 take_token_ignore(s, IDENT) || take_token_ignore(s, STRING),
                 expected_err(*s, s->offset, "list element"));
         ++list->length;
 
-        TRYBOOL_R(next(s, &next_tok), expected_err(*s, s->offset, "list element"));
-
         TRYBOOL_R(
-                take_token_ignore(s, COMMA) || take_token_ignore(s, BRACKET_CLOSE),
+                take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
                 expected_err(*s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
 
