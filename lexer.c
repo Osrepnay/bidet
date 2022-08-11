@@ -108,24 +108,22 @@ static bool lex_ident (LexState *s, Token *tok) {
     return true;
 }
 
-// if given "``` " for example writes 3 to backticks
+// if given "```'" for example writes 3 to backticks
 static bool lex_quote_start (LexState *s, size_t *backticks) {
     LexState s_save = *s;
 
     while (take_char(s, '`')) {
         ++*backticks;
     }
-    // if backticks is 0, that means that there was no quote
-    TRYBOOL_R(*backticks != 0, *s = s_save);
-    TRYBOOL_R(take_char(s, ' '), *s = s_save);
+    TRYBOOL_R(take_char(s, '\''), *s = s_save);
     return true;
 }
 
-// lexes " <backticks `s>"
+// lexes "'<backticks `s>"
 static bool lex_quote_end (LexState *s, size_t backticks) {
     LexState s_save = *s;
 
-    TRYBOOL(take_char(s, ' '));
+    TRYBOOL(take_char(s, '\''));
     for (size_t i = 0; i < backticks; ++i) {
         TRYBOOL_R(take_char(s, '`'), *s = s_save);
     }

@@ -46,7 +46,7 @@ static int astlist_printf (ASTList t) {
                 }
                 backticks[elem.data.string.backticks] = '\0';;
 
-                TRYBOOL(printf("%s %s %s", backticks, elem.data.string.text, backticks) >= 0);
+                TRYBOOL(printf("%s'%s'%s", backticks, elem.data.string.text, backticks) >= 0);
                 break;
             }
             default:
@@ -81,7 +81,7 @@ static int astaction_printf_cb (const void *t_v, void *udata) {
 static greatest_type_info astaction_type_info = { .equal = astaction_equal_cb, .print = astaction_printf_cb };
 
 TEST action_test (void) {
-    Prog prog = (Prog) { .filename = "test", .text = "[` foo `] > bar [] > [` foo `, bar];" };
+    Prog prog = (Prog) { .filename = "test", .text = "['foo'] > bar [] > ['foo', bar];" };
 
     Token *action_toks;
     size_t action_toks_len = 0;
@@ -97,9 +97,9 @@ TEST action_test (void) {
            .length = 1,
            .elems = &(Token) {
                .type = STRING,
-               .data.string = (TokenString) { .text = "foo", .backticks = 1 },
+               .data.string = (TokenString) { .text = "foo", .backticks = 0 },
                .offset = 1,
-               .length = 7
+               .length = 5
            },
        } ,
        .name = (TokenIdent) { .name = "bar" },
@@ -112,14 +112,14 @@ TEST action_test (void) {
            .elems = (Token[2]) {
                (Token) {
                    .type = STRING,
-                   .data.string = (TokenString) { .text = "foo", .backticks = 1 },
-                   .offset = 22,
-                   .length = 7
+                   .data.string = (TokenString) { .text = "foo", .backticks = 0 },
+                   .offset = 20,
+                   .length = 5
                },
                (Token) {
                    .type = IDENT,
                    .data.ident = (TokenIdent) { .name = "bar" },
-                   .offset = 31,
+                   .offset = 27,
                    .length = 3
                }
            }

@@ -124,16 +124,16 @@ TEST ident_test (void) {
 }
 
 TEST string_test (void) {
-    Prog prog = (Prog) { .filename = "test", .text = "`` bar `bar` bar ``" };
+    Prog prog = (Prog) { .filename = "test", .text = "``'bar 'bar`' bar'``" };
     Token* str;
     size_t len = 0;
     ASSERTm("lex should succeed on string", lex(prog, &str, &len));
 
     Token correct_str = (Token) {
         .type = STRING,
-        .data.string = (TokenString) { .text = "bar `bar` bar", .backticks = 2 },
+        .data.string = (TokenString) { .text = "bar 'bar`' bar", .backticks = 2 },
         .offset = 0,
-        .length = strlen("`` bar `bar` bar ``")
+        .length = strlen("``'bar 'bar`' bar'``")
     };
     ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str, &token_type_info, NULL);
 
