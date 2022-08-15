@@ -11,7 +11,7 @@ typedef struct {
 } LexState;
 
 // get next char without consuming input
-static bool peek_chr (LexState *s, char *chr) {
+static bool peek (LexState *s, char *chr) {
     char c = s->prog.text[s->offset];
     TRYBOOL(c != '\0');
     *chr = c;
@@ -20,15 +20,15 @@ static bool peek_chr (LexState *s, char *chr) {
 
 // get next char; fails on eof (\0)
 // when peek fails it doesn' increment offset
-static bool next_chr (LexState *s, char *chr) {
-    TRYBOOL(peek_chr(s, chr));
+static bool next (LexState *s, char *chr) {
+    TRYBOOL(peek(s, chr));
     ++s->offset;
     return true;
 }
 
 static bool take_char (LexState *s, char chr) {
     char c;
-    TRYBOOL(next_chr(s, &c));
+    TRYBOOL(next(s, &c));
     if (c != chr) {
         --s->offset;
         return false;
@@ -40,7 +40,7 @@ static bool take_char (LexState *s, char chr) {
 // parse misc symbols
 static bool lex_symbol (LexState *s, Token *tok) {
     char sym;
-    TRYBOOL(peek_chr(s, &sym));
+    TRYBOOL(peek(s, &sym));
     switch (sym) {
         case '>':
             tok->type = ARROW;
@@ -80,10 +80,10 @@ static bool lex_ident (LexState *s, Token *tok) {
     // first find number of chars
     size_t num_chars = 0;
     char ichar;
-    TRYBOOL(next_chr(s, &ichar));
+    TRYBOOL(next(s, &ichar));
     while (valid_ident_char(ichar)) {
         ++num_chars;
-        if (!next_chr(s, &ichar)) {
+        if (!next(s, &ichar)) {
             break;
         }
     }
@@ -97,7 +97,7 @@ static bool lex_ident (LexState *s, Token *tok) {
     // then start writing to string
     char *ident = malloc(num_chars + 1);
     for (size_t i = 0; i < num_chars; ++i) {
-        TRYBOOL_R(next_chr(s, ident + i), *s = s_save);
+        TRYBOOL_R(next(s, ident + i), *s = s_save);
     }
     ident[num_chars] = '\0';
 
@@ -139,7 +139,7 @@ static bool lex_string (LexState *s, Token *tok) {
     size_t num_chars = 0;
     char curr_char;
     while (!lex_quote_end(s, backticks)) {
-        TRYBOOL_R(next_chr(s, &curr_char), *s = s_save);
+        TRYBOOL_R(next(s, &curr_char), *s = s_save);
         ++num_chars;
     }
 
@@ -149,7 +149,7 @@ static bool lex_string (LexState *s, Token *tok) {
     backticks = 0;
     lex_quote_start(s, &backticks); // should never be false because we checked already
     for (size_t i = 0; i < num_chars; ++i) {
-        TRYBOOL_R(next_chr(s, str + i), *s = s_save);
+        TRYBOOL_R(next(s, str + i), *s = s_save);
     }
     lex_quote_end(s, backticks);
     str[num_chars] = '\0';
