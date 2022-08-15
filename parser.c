@@ -76,7 +76,7 @@ static bool take_token_ignore (ParseState *s, TokenType type) {
 // nexts until semicolon
 static void synchronize (ParseState *s) {
     Token tok;
-    while (next(s, &tok) == true && tok.type != SEMICOLON);
+    while (next(s, &tok) && tok.type != SEMICOLON);
 }
 
 static bool parse_list (ParseState *s, ASTList *list) {
