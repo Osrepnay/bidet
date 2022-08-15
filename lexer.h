@@ -7,6 +7,7 @@ typedef enum {
     ARROW,
     BRACKET_OPEN, BRACKET_CLOSE,
     COMMA,
+    CONCAT,
     SEMICOLON,
     STRING,
 } TokenType;

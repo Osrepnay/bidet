@@ -15,6 +15,7 @@ static char *type_to_string (TokenType type) {
         case BRACKET_OPEN: return "open bracket";
         case BRACKET_CLOSE: return "close bracket";
         case COMMA: return "comma";
+        case CONCAT: return "concat";
         case SEMICOLON: return "semicolon";
         case STRING: return "string";
         default: return "unimplemented type"; // dumb!

@@ -54,6 +54,9 @@ static bool lex_symbol (LexState *s, Token *tok) {
         case ',':
             tok->type = COMMA;
             break;
+        case '+':
+            tok->type = CONCAT;
+            break;
         case ';':
             tok->type = SEMICOLON;
             break;

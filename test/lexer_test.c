@@ -25,12 +25,14 @@ static char *type_to_string (TokenType type) {
             return "IDENT";
         case ARROW:
             return "ARROW";
-        case COMMA:
-            return "COMMA";
         case BRACKET_OPEN:
             return "BRACKET_OPEN";
         case BRACKET_CLOSE:
             return "BRACKET_CLOSE";
+        case COMMA:
+            return "COMMA";
+        case CONCAT:
+            return "CONCAT";
         case SEMICOLON:
             return "SEMICOLON";
         case STRING:
@@ -79,23 +81,24 @@ static int token_printf_cb (const void *t_v, void *udata) {
 static greatest_type_info token_type_info = { .equal = token_equal_cb, .print = token_printf_cb };
 
 TEST symbol_test (void) {
-    Token answers[5] = {
+    Token answers[6] = {
         { .type = ARROW        , .offset = 0, .length = 1 },
         { .type = BRACKET_OPEN , .offset = 1, .length = 1 },
         { .type = BRACKET_CLOSE, .offset = 2, .length = 1 },
         { .type = COMMA        , .offset = 3, .length = 1 },
-        { .type = SEMICOLON    , .offset = 4, .length = 1 }
+        { .type = CONCAT       , .offset = 4, .length = 1 },
+        { .type = SEMICOLON    , .offset = 5, .length = 1 }
     };
-    Prog prog = (Prog) { .filename = "test", .text = ">[],;" };
+    Prog prog = (Prog) { .filename = "test", .text = ">[],+;" };
     // lex returns an array of tokens, but we only use the first element
     Token *sym;
     size_t len = 0;
     ASSERTm("lex should succeed on symbols", lex(prog, &sym, &len));
-    ASSERT_EQm("lex should lex the right number of symbols", 5, len);
+    ASSERT_EQm("lex should lex the right number of symbols", 6, len);
 
     char *message = malloc(sizeof("lex should lex x correctly"));
-    char characters[5] = { '>', '[', ']', ',', ';' };
-    for (int i = 0; i < 5; ++i) {
+    char characters[6] = { '>', '[', ']', ',', '+', ';' };
+    for (int i = 0; i < 6; ++i) {
         sprintf(message, "lex should lex %c correctly", characters[i]);
         ASSERT_EQUAL_Tm(message, answers + i, sym + i, &token_type_info, NULL);
     }
