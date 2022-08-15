@@ -12,9 +12,9 @@ static char *type_to_string (TokenType type) {
     switch (type) {
         case IDENT: return "identifier";
         case ARROW: return "arrow";
-        case COMMA: return "comma";
         case BRACKET_OPEN: return "open bracket";
         case BRACKET_CLOSE: return "close bracket";
+        case COMMA: return "comma";
         case SEMICOLON: return "semicolon";
         case STRING: return "string";
         default: return "unimplemented type"; // dumb!

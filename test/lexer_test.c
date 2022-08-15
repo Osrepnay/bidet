@@ -81,12 +81,12 @@ static greatest_type_info token_type_info = { .equal = token_equal_cb, .print = 
 TEST symbol_test (void) {
     Token answers[5] = {
         { .type = ARROW        , .offset = 0, .length = 1 },
-        { .type = COMMA        , .offset = 1, .length = 1 },
-        { .type = BRACKET_OPEN , .offset = 2, .length = 1 },
-        { .type = BRACKET_CLOSE, .offset = 3, .length = 1 },
+        { .type = BRACKET_OPEN , .offset = 1, .length = 1 },
+        { .type = BRACKET_CLOSE, .offset = 2, .length = 1 },
+        { .type = COMMA        , .offset = 3, .length = 1 },
         { .type = SEMICOLON    , .offset = 4, .length = 1 }
     };
-    Prog prog = (Prog) { .filename = "test", .text = ">,[];" };
+    Prog prog = (Prog) { .filename = "test", .text = ">[],;" };
     // lex returns an array of tokens, but we only use the first element
     Token *sym;
     size_t len = 0;
@@ -94,7 +94,7 @@ TEST symbol_test (void) {
     ASSERT_EQm("lex should lex the right number of symbols", 5, len);
 
     char *message = malloc(sizeof("lex should lex x correctly"));
-    char characters[5] = { '>', ',', '[', ']', ';' };
+    char characters[5] = { '>', '[', ']', ',', ';' };
     for (int i = 0; i < 5; ++i) {
         sprintf(message, "lex should lex %c correctly", characters[i]);
         ASSERT_EQUAL_Tm(message, answers + i, sym + i, &token_type_info, NULL);

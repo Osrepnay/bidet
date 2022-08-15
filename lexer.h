@@ -5,8 +5,8 @@
 typedef enum {
     IDENT,
     ARROW,
-    COMMA,
     BRACKET_OPEN, BRACKET_CLOSE,
+    COMMA,
     SEMICOLON,
     STRING,
 } TokenType;
