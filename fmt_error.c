@@ -11,17 +11,17 @@ bool offset_line_col (Prog prog, size_t offset, size_t *offset_line, size_t *off
     int line = 1;
     int col = 1;
 
-    for (size_t i = 0; prog.text[i] != '\0'; ++i) {
+    for (size_t i = 0; prog.text[i] != '\0'; ++i, ++col) {
         // handle newlines
         switch (prog.text[i]) {
             case '\n':
                 // reset col and inc line
                 ++line;
-                col = 0;
+                col = 1;
                 break;
             case '\r':
                 ++line;
-                col = 0;
+                col = 1;
                 // if crlfs
                 // doesn't overreach text because text always has null terminator
                 if (prog.text[i + 1] == '\n') {
