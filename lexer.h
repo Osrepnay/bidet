@@ -12,20 +12,27 @@ typedef enum {
     STRING,
 } TokenType;
 
+// part of interpolated string
 typedef struct {
-    char *name;
-} TokenIdent;
+    enum {
+        INTERPOL_IDENT,
+        INTERPOL_STRING
+    } type;
+    char *data;
+} InterpolStringElem;
 
+// interpolated string
 typedef struct {
-    char *text;
     size_t backticks;
-} TokenString;
+    size_t length;
+    InterpolStringElem *elems;
+} InterpolString; // wee woo wee woo
 
 typedef struct {
     TokenType type;
     union {
-        TokenIdent ident;
-        TokenString string;
+        char *ident;
+        InterpolString string;
     } data;
     size_t offset;
     size_t length;

@@ -1,0 +1,5 @@
+clang
+-Wall
+-Wpedantic
+-Wextra
+--std=c99

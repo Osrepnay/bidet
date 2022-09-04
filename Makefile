@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -Og -g
+CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -g -fsanitize=address
 BUILD_DIR = build
 OBJS = $(BUILD_DIR)/fmt_error.o $(BUILD_DIR)/lexer.o $(BUILD_DIR)/parser.o
 

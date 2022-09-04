@@ -10,9 +10,14 @@ static int token_equal_cb (const void *expd_v, const void *got_v, void *udata) {
 
     TRYBOOL(expd->type == got->type)
     if (expd->type == IDENT) {
-        TRYBOOL(strcmp(expd->data.ident.name, got->data.ident.name) == 0);
+        TRYBOOL(strcmp(expd->data.ident, got->data.ident) == 0);
     } else if (expd->type == STRING) {
-        TRYBOOL(strcmp(expd->data.string.text, got->data.string.text) == 0);
+        TRYBOOL(expd->data.string.length == got->data.string.length);
+        for (size_t i = 0; i < expd->data.string.length; ++i) {
+            TRYBOOL(expd->data.string.elems[i].type == got->data.string.elems[i].type);
+            TRYBOOL(strcmp(expd->data.string.elems[i].data, got->data.string.elems[i].data) == 0);
+        }
+        TRYBOOL(expd->data.string.backticks == got->data.string.backticks);
     }
     TRYBOOL(expd->offset == got->offset && expd->length == got->length);
 
@@ -50,9 +55,8 @@ static int token_printf_cb (const void *t_v, void *udata) {
     // has value, print that too
     if (t->type == IDENT) {
         return printf(
-            "Token { .type = %s, .data.ident = TokenIdent { .name = %s }, .offset = %zu, .length = %zu }",
-            type_to_string(t->type), t->data.ident.name, t->offset, t->length
-        );
+            "Token { .type = %s, .data.ident = %s, .offset = %zu, .length = %zu }",
+            type_to_string(t->type), t->data.ident, t->offset, t->length);
     } else if (t->type == STRING) {
         char *backticks = malloc(t->data.string.backticks + 1);
         for (size_t i = 0; i < t->data.string.backticks; ++i) {
@@ -60,16 +64,25 @@ static int token_printf_cb (const void *t_v, void *udata) {
         }
         backticks[t->data.string.backticks] = '\0';;
 
-        return printf(
+        TRYBOOL(printf(
             "Token { "
                 ".type = %s, "
-                ".data.string = TokenString { .text = %s %s %s, .backticks = %zu }, "
-                ".offset = %zu, .length = %zu "
-            "}",
-            type_to_string(t->type),
-            backticks, t->data.string.text, backticks, t->data.string.backticks,
-            t->offset, t->length
-        );
+                ".data.string = InterpolString { .text = %s'",
+            type_to_string(t->type), backticks) >= 0);
+        for (size_t i = 0; i < t->data.string.length; ++i) {
+            switch (t->data.string.elems[i].type) {
+                case INTERPOL_IDENT:
+                    TRYBOOL(printf("$(%s)", t->data.string.elems[i].data) >= 0);
+                    break;
+                case INTERPOL_STRING:
+                    TRYBOOL(printf("#[%s]", t->data.string.elems[i].data) >= 0);
+                    break;
+            }
+        }
+        return printf(
+            "'%s, .backticks = %zu },"
+            ".offset = %zu, .length = %zu",
+            backticks, t->data.string.backticks, t->offset, t->length);
     } else {
         return printf(
             "Token { .type = %s, .offset = %zu, .length = %zu }",
@@ -116,7 +129,7 @@ TEST ident_test (void) {
 
     Token correct_ident = (Token) {
         .type = IDENT,
-        .data.ident = (TokenIdent) { "a-b_0" },
+        .data.ident = "a-b_0",
         .offset = 0,
         .length = strlen("a-b_0")
     };
@@ -127,16 +140,24 @@ TEST ident_test (void) {
 }
 
 TEST string_test (void) {
-    Prog prog = (Prog) { .filename = "test", .text = "``'bar 'bar`' bar'``" };
+    Prog prog = (Prog) { .filename = "test", .text = "``'bar 'bar`'$(bar) bar'``" };
     Token* str;
     size_t len = 0;
     ASSERTm("lex should succeed on string", lex(prog, &str, &len));
 
     Token correct_str = (Token) {
         .type = STRING,
-        .data.string = (TokenString) { .text = "bar 'bar`' bar", .backticks = 2 },
+        .data.string = (InterpolString) {
+            .elems = (InterpolStringElem[3]) {
+                (InterpolStringElem) { .type = INTERPOL_STRING, .data = "bar 'bar`'" },
+                (InterpolStringElem) { .type = INTERPOL_IDENT,  .data = "bar" },
+                (InterpolStringElem) { .type = INTERPOL_STRING, .data = " bar" }
+            },
+            .length = 3,
+            .backticks = 2
+        },
         .offset = 0,
-        .length = strlen("``'bar 'bar`' bar'``")
+        .length = strlen("``'bar 'bar`'$(bar) bar'``")
     };
     ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str, &token_type_info, NULL);
 
