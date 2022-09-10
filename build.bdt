@@ -1,4 +1,4 @@
-cflags '-Wall -Wextra -Wpedantic -std=c99 -Og -g';
+cflags '-Wall -Wextra -Wpedantic -std=c99 -g -fsanitize=address';
 build_dir 'build';
 objs '$(build_dir)/fmt_error.o $(build_dir)/lexer.o $(build_dir)/parser.o';
 
@@ -14,21 +14,21 @@ objs '$(build_dir)/fmt_error.o $(build_dir)/lexer.o $(build_dir)/parser.o';
 ] > ['$(build_dir)/tests.o'];
 
 
-['test/lexer_test.c', 'try.h', 'test/greatest/greatest.h']
+['test/lexer_test.c', '$(build_dir)/lexer.o', try.h', 'test/greatest/greatest.h']
     > lexer_test.o [
         lexer.o,
         'cc $(cflags) -c test/lexer_test.c -o $(build_dir)/lexer_test.o'
     ] >
 ['$(build_dir)/lexer_test.o'];
 
-['test/parser_test.c',  try.h ,  test/greatest/greatest.h']
+['test/parser_test.c', '$(build_dir)/parser.o', 'try.h' ,  'test/greatest/greatest.h']
     > parser_test.o [
         parser.o,
         'cc $(cflags) -c test/parser_test.c -o $(build_dir)/parser_test.o'
     ] >
 ['$(build_dir)/parser_test.o'];
 
-['test/tests.c', 'test/tests.h ]
+['test/tests.c', 'test/tests.h', '$(build_dir)/lexer_test.o', '$(build_dir)/parser_test.o']
     > tests.o [
         lexer_test.o,
         parser_test.o,
@@ -43,14 +43,14 @@ objs '$(build_dir)/fmt_error.o $(build_dir)/lexer.o $(build_dir)/parser.o';
     ] >
 ['$(build_dir)/fmt_error.o'];
 
-['lexer.c', 'lexer.h', 'try.h', 'prog.h']
+['lexer.c', '$(build_dir)/fmt_error.o', 'lexer.h', 'try.h', 'prog.h']
     > lexer.o [
         fmt_error.o,
         'cc $(cflags) -c lexer.c -o $(build_dir)/lexer.o'
     ] >
 ['$(build_dir)/lexer.o'];
 
-['parser.c', 'parser.h', 'try.h', 'ast.h', 'prog.h']
+['parser.c', '$(build_dir)/fmt_error.o', 'parser.h', 'try.h', 'ast.h', '$(build_dir)/lexer.o', 'prog.h']
     > lexer.o [
         fmt_error.o,
         lexer.o,
