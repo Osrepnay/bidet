@@ -30,11 +30,11 @@ typedef struct {
 } ParseState;
 
 // reports error at s's offset
-static void expected_err (ParseState s, size_t offset, const char *expected) {
-    char *got = offset >= s.tokens_len ? "EOF" : type_to_string(s.tokens[offset].type);
+static void expected_err (const ParseState *s, size_t offset, const char *expected) {
+    char *got = offset >= s->tokens_len ? "EOF" : type_to_string(s->tokens[offset].type);
     char *message = malloc(sizeof("expected , got \n") + strlen(expected) + strlen(got));
     sprintf(message, "expected %s, got %s\n", expected, got);
-    char *err = fmt_err(s.prog, s.tokens[offset].offset, message);
+    char *err = fmt_err(s->prog, s->tokens[offset].offset, message);
     fputs(err, stderr);
     free(err);
 }
@@ -88,7 +88,7 @@ static bool parse_concat_string (ParseState *s, ASTConcatString *concat_str) {
     do {
         TRYBOOL_R(
                 take_token_ignore(s, IDENT) || take_token_ignore(s, STRING),
-                expected_err(*s, s->offset, "string"));
+                expected_err(s, s->offset, "string"));
         ++concat_str->length;
     } while (take_token(s, CONCAT, &concat));
 
@@ -119,7 +119,7 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
     // find elements
     Token next_tok; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &next_tok), expected_err(*s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek(s, &next_tok), expected_err(s, s->offset, "list element or close bracket"));
 
     list->length = 0;
     if (next_tok.type == BRACKET_CLOSE) { // no length
@@ -134,14 +134,14 @@ static bool parse_list (ParseState *s, ASTList *list) {
             // TODO if we're storing it anyway to free then maybe we should just use a list instead...
             // why don't we just use a list everywhere?? benchmark????
             ASTConcatString concat_str;
-            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(*s, s->offset, "list element"));
+            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(s, s->offset, "list element"));
             free(concat_str.elems);
         }
         ++list->length;
 
         TRYBOOL_R(
                 take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
-                expected_err(*s, s->offset, "comma or close bracket"));
+                expected_err(s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
 
     // start making list
@@ -159,7 +159,7 @@ static bool parse_list (ParseState *s, ASTList *list) {
         } else {
             elem.type = ASTLIST_STRING;
             ASTConcatString concat_str;
-            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(*s, s->offset, "list element"));
+            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(s, s->offset, "list element"));
             elem.data.string = concat_str;
         }
         list->elems[i] = elem;
@@ -172,17 +172,17 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
 static bool parse_action (ParseState *s, ASTAction *action) {
     TRYBOOL(parse_list(s, &action->reqs));
-    TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(*s, s->offset, "arrow"));
+    TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(s, s->offset, "arrow"));
 
     Token name_tok;
-    TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(*s, s->offset, "identifier"));
+    TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(s, s->offset, "identifier"));
     action->name = name_tok.data.ident;
     TRYBOOL(parse_list(s, &action->commands));
 
     TRYBOOL(take_token_ignore(s, ARROW));
     TRYBOOL(parse_list(s, &action->updates));
 
-    TRYBOOL_R(take_token_ignore(s, SEMICOLON), expected_err(*s, s->offset, "semicolon"));
+    TRYBOOL_R(take_token_ignore(s, SEMICOLON), expected_err(s, s->offset, "semicolon"));
 
     return true;
 }
