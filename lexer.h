@@ -3,11 +3,11 @@
 #include "prog.h"
 
 typedef enum {
-    IDENT,
     ARROW,
-    BRACKET_OPEN, BRACKET_CLOSE,
+    BRACKET_CLOSE, BRACKET_OPEN,
     COMMA,
     CONCAT,
+    IDENT,
     SEMICOLON,
     STRING,
 } TokenType;
