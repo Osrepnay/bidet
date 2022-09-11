@@ -10,12 +10,12 @@
 // name is the same as in lexer_test but this prints it for humans
 static char *type_to_string (TokenType type) {
     switch (type) {
-        case IDENT: return "identifier";
         case ARROW: return "arrow";
-        case BRACKET_OPEN: return "open bracket";
         case BRACKET_CLOSE: return "close bracket";
+        case BRACKET_OPEN: return "open bracket";
         case COMMA: return "comma";
         case CONCAT: return "concat";
+        case IDENT: return "identifier";
         case SEMICOLON: return "semicolon";
         case STRING: return "string";
         default: return "unimplemented type"; // dumb!

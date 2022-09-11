@@ -180,9 +180,9 @@ static bool lex_string (LexState *s, Token *tok) {
 
     size_t sections = 2 * interpol_starts.len + 1;
     InterpolString str = (InterpolString) {
-        .elems = malloc(sizeof(InterpolStringElem) * sections),
+        .backticks = backticks,
         .length = sections,
-        .backticks = backticks
+        .elems = malloc(sizeof(InterpolStringElem) * sections)
     };
 
     backticks = 0;
