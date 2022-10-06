@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stddef.h>
+#include "list.h"
 #include "prog.h"
 
 typedef enum {
@@ -19,13 +20,14 @@ typedef struct {
         INTERPOL_STRING
     } type;
     char *data;
-} InterpolStringElem;
+} InterpolPart;
+
+GENLIST_TYPE(InterpolPart, InterpolPart, interpolpart)
 
 // interpolated string
 typedef struct {
     size_t backticks;
-    size_t length;
-    InterpolStringElem *elems;
+    LLInterpolPart parts;
 } InterpolString; // wee woo wee woo
 
 typedef struct {

@@ -42,6 +42,17 @@ static bool take_char (LexState *s, char chr) {
     }
 }
 
+static bool take_chars (LexState *s, char* chrs) {
+    LexState s_save = *s;
+    while (*chrs != '\0' && take_char(s, *chrs++)) ++s->offset;
+    if (*chrs == '\0') {
+        return true;
+    } else {
+        *s = s_save;
+        return false;
+    }
+}
+
 // parse misc symbols
 static bool lex_symbol (LexState *s, Token *tok) {
     char sym;
@@ -138,104 +149,58 @@ static bool lex_quote_end (LexState *s, size_t backticks) {
     return true;
 }
 
-// basically only used one time (in this file) here
-#include "list.h"
-GENLIST_TYPE(char *, String, string)
-GENLIST_TYPE(size_t, SizeT, size_t)
+static void push_str (char *str, size_t *used, size_t *cap, char push) {
+    if (used == cap) {
+        str = realloc(str, *cap *= 2);
+    }
+    str[*used - 1] = push;
+    str[(*used)++] = '\0';
+}
 
 static bool lex_string (LexState *s, Token *tok) {
-    LexState s_save = *s;
-
     size_t backticks = 0;
     TRYBOOL(lex_quote_start(s, &backticks));
 
-    size_t first_in_str = s->offset;
-    ListString idents = list_string_new();
-    ListSizeT interpol_starts = list_size_t_new(); // start indexes of string interpolation (starts at $)
-    ListSizeT interpol_ends = list_size_t_new(); // end indexes (after closing paren)
-    size_t last_in_str = 0; // last character in string
-
-    while (!lex_quote_end(s, backticks)) {
-        // string interpolation
-        if (take_char(s, '$')) {
-            TRYBOOL(take_char(s, '('));
-            list_size_t_push(&interpol_starts, s->offset - 2); // -2 because of $(
-
-            Token ident;
-            TRYBOOL_R(lex_ident(s, &ident), *s = s_save);
-            list_string_push(&idents, ident.data.ident);
-
-            TRYBOOL_R(take_char(s, ')'), *s = s_save);
-            list_size_t_push(&interpol_ends, s->offset);
-        } else {
-            // only next if take_char hasn't nexted
-            TRYBOOL_R(curr(s) != '\0', *s = s_save);
-            ++s->offset;
-        }
-        last_in_str = s->offset - 1; // don't catch end quote
-    }
-
-    // reset to start storing
-    *s = s_save;
-
-    size_t sections = 2 * interpol_starts.len + 1;
+    LexState s_save = *s;
     InterpolString str = (InterpolString) {
         .backticks = backticks,
-        .length = sections,
-        .elems = malloc(sizeof(InterpolStringElem) * sections)
+        .parts = list_interpolpart_new()
     };
 
-    backticks = 0;
-    lex_quote_start(s, &backticks); // should never be false because we checked already
-
-    size_t curr_str_idx = 0; // current position in the InterpolString
-    size_t last_end = first_in_str; // ending index of the last non-interpolated section
-    for (size_t i = 0; i < idents.len; ++i){
-        size_t dist = interpol_starts.elems[i] - last_end;
-        last_end = interpol_ends.elems[i];
-
-        // avoid empty strings
-        if (dist != 0) {
-            char *between = malloc(dist + 1);
-            for (size_t j = 0; j < dist; ++j) {
-                next(s, between + j);
+    size_t curr_used = 1;
+    size_t curr_cap = 8;
+    InterpolPart curr_part = (InterpolPart) {
+        .type = INTERPOL_STRING,
+        .data = malloc(curr_cap)
+    };
+    while (!lex_quote_end(s, backticks)) {
+        // string interpolation
+        if (take_chars(s, "$(")) {
+            if (curr_used > 1) {
+                list_interpolpart_push(&str.parts, curr_part);
+                curr_used = 1;
+                curr_cap = 8;
+                curr_part = (InterpolPart) {
+                    .type = INTERPOL_STRING,
+                    .data = malloc(curr_cap)
+                };
             }
-            between[dist] = '\0';
+            Token ident;
+            TRYBOOL_R(lex_ident(s, &ident), list_interpolpart_free(str.parts), *s = s_save);
+            list_interpolpart_push(&str.parts, (InterpolPart) {
+                .type = INTERPOL_IDENT,
+                .data = ident.data.ident
+            });
 
-            str.elems[curr_str_idx++] = (InterpolStringElem) {
-                .type = INTERPOL_STRING,
-                .data = between
-            };
+            TRYBOOL_R(take_char(s, ')'), list_interpolpart_free(str.parts), *s = s_save);
         }
-
-        str.elems[curr_str_idx++] = (InterpolStringElem) {
-            .type = INTERPOL_IDENT,
-            .data = idents.elems[i]
-        };
-        s->offset = interpol_ends.elems[i];
+        char c;
+        TRYBOOL_R(next(s, &c), list_interpolpart_free(str.parts), *s = s_save);
+        push_str(curr_part.data, &curr_used, &curr_cap, c);
     }
-    // last string section
-    if (interpol_ends.len == 0 || s->prog.text[list_last(interpol_ends)] != '\0') {
-        size_t last_len = interpol_ends.len == 0 ?
-            last_in_str - first_in_str             + 1 :
-            last_in_str - list_last(interpol_ends) + 1;
-        char *last = malloc(last_len + 1);
-        for (size_t j = 0; j < last_len; ++j) {
-            next(s, last + j);
-        }
-        last[last_len] = '\0';
-
-        str.elems[curr_str_idx++] = (InterpolStringElem) {
-            .type = INTERPOL_STRING,
-            .data = last
-        };
+    if (curr_used > 1) {
+        list_interpolpart_push(&str.parts, curr_part);
     }
-
-    free(idents.elems); // dont free char *s because they're copied to the interpol string
-    free(interpol_starts.elems);
-    free(interpol_ends.elems);
-
-    lex_quote_end(s, backticks);
 
     tok->type = STRING;
     tok->data.string = str;
@@ -308,10 +273,10 @@ void free_tokens (Token *tokens, size_t tokens_len) {
         if (tokens[i].type == IDENT) {
             free(tokens[i].data.ident);
         } else if (tokens[i].type == STRING) {
-            for (size_t j = 0; j < tokens[i].data.string.length; ++j) {
-                free(tokens[i].data.string.elems[j].data);
+            FOREACH (LLInterpolPartNode, part, tokens[i].data.string.parts) {
+                free(part->data.data);
             }
-            free(tokens[i].data.string.elems);
+            list_interpolpart_free(tokens[i].data.string.parts);
         }
     }
     free(tokens);

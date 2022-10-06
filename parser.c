@@ -80,92 +80,68 @@ static void synchronize (ParseState *s) {
 }
 
 // parses concatenated strings concatenated with the concatenation operator, + (concatenation operator)
-static bool parse_concat_string (ParseState *s, ASTConcatString *concat_str) {
-    ParseState s_save = *s;
+static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
+    // first check first element
+    Token first;
+    TRYBOOL(peek(s, &first));
+    TRYBOOL(first.type == IDENT || first.type == STRING);
 
-    concat_str->length = 0;
+    concat_str->catee = list_astcatee_new();
     Token concat;
     do {
-        TRYBOOL_R(
-                take_token_ignore(s, IDENT) || take_token_ignore(s, STRING),
-                expected_err(s, s->offset, "string"));
-        ++concat_str->length;
-    } while (take_token(s, CONCAT, &concat));
-
-    *s = s_save;
-
-    concat_str->elems = malloc(sizeof(PossString) * concat_str->length);
-    for (size_t i = 0; i < concat_str->length; ++i) {
         Token str;
-        next(s, &str);
-        if (str.type == IDENT) {
-            concat_str->elems[i].type = STRING_IDENT;
-            concat_str->elems[i].data.ident = str.data.ident;
-        } else {
-            concat_str->elems[i].type = STRING_INTERPOL_STRING;
-            concat_str->elems[i].data.interpol_string = str.data.string;
+        TRYBOOL_R(next(s, &str),
+            list_astcatee_free(concat_str->catee),
+            expected_err(s, s->offset, "string or identifier"));
+        switch(str.type) {
+            case IDENT:
+                list_astcatee_push(&concat_str->catee, (ASTCatee) {
+                    .type = CATEE_IDENT,
+                    .data.ident = str.data.ident
+                });
+                break;
+            case STRING:
+                list_astcatee_push(&concat_str->catee, (ASTCatee) {
+                    .type = CATEE_INTERPOL_STRING,
+                    .data.interpol_string = str.data.string 
+                });
+                break;
+            default:
+                list_astcatee_free(concat_str->catee);
+                expected_err(s, s->offset - 1, "string or identifier");
+                return false;
         }
-        ++s->offset;
-    }
-    --s->offset; // there is no trailing concat so we have to backtrack
+    } while (take_token(s, CONCAT, &concat));
 
     return true;
 }
 
 static bool parse_list (ParseState *s, ASTList *list) {
-    ParseState s_save = *s;
-
     TRYBOOL(take_token_ignore(s, BRACKET_OPEN));
 
     // find elements
     Token next_tok; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &next_tok), expected_err(s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek(s, &next_tok),
+        expected_err(s, s->offset, "list element or close bracket"));
 
-    list->length = 0;
+    list->elems = list_astconcat_new();
     if (next_tok.type == BRACKET_CLOSE) { // no length
         ++s->offset;
-        list->elems = malloc(0); // :troll:
         return true;
     }
 
     Token comma;
     do {
-        if (!take_token_ignore(s, IDENT)) {
-            // TODO if we're storing it anyway to free then maybe we should just use a list instead...
-            // why don't we just use a list everywhere?? benchmark????
-            ASTConcatString concat_str;
-            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(s, s->offset, "list element"));
-            free(concat_str.elems);
-        }
-        ++list->length;
+        ASTConcat concat_str;
+        TRYBOOL_R(parse_concat_string(s, &concat_str),
+            list_astconcat_free(list->elems),
+            expected_err(s, s->offset, "list element"));
+        list_astconcat_push(&list->elems, concat_str);
 
-        TRYBOOL_R(
-                take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
-                expected_err(s, s->offset, "comma or close bracket"));
+        TRYBOOL_R(take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
+            list_astconcat_new(list->elems),
+            expected_err(s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
-
-    // start making list
-    // first reset to start of list
-    *s = s_save;
-    ++s->offset;
-
-    list->elems = malloc(sizeof(ASTListElem) * list->length);
-    for (size_t i = 0; i < list->length; ++i) {
-        ASTListElem elem;
-        Token ident;
-        if (take_token(s, IDENT, &ident)) {
-            elem.type = ASTLIST_IDENT;
-            elem.data.ident = ident.data.ident;
-        } else {
-            elem.type = ASTLIST_STRING;
-            ASTConcatString concat_str;
-            TRYBOOL_R(parse_concat_string(s, &concat_str), expected_err(s, s->offset, "list element"));
-            elem.data.string = concat_str;
-        }
-        list->elems[i] = elem;
-
-        ++s->offset; // comma and close bracket
-    }
 
     return true;
 }
@@ -187,10 +163,7 @@ static bool parse_action (ParseState *s, ASTAction *action) {
     return true;
 }
 
-#include "list.h"
-GENLIST_TYPE(ASTAction, Action, action)
-
-bool parse (Prog prog, const Token *tokens, size_t tokens_len, ASTAction **actions, size_t *actions_len) {
+bool parse (Prog prog, const Token *tokens, size_t tokens_len, LLAction *actions) {
     ParseState state = (ParseState) {
         .prog = prog,
         .tokens = tokens,
@@ -201,37 +174,29 @@ bool parse (Prog prog, const Token *tokens, size_t tokens_len, ASTAction **actio
     // we don't want to exit right away after parse_action fails because we'll miss all the other errors
     bool return_res = true;
 
-    ListAction actions_list = list_action_new();
+    *actions = list_action_new();
     while (state.offset < state.tokens_len) {
         ASTAction action;
         if (!parse_action(&state, &action)) {
             return_res = false;
             synchronize(&state);
         }
-        list_action_push(&actions_list, action);
+        list_action_push(actions, action);
     }
-    *actions = actions_list.elems;
-    *actions_len = actions_list.len;
 
     return return_res;
 }
 
 static void free_astlist (ASTList list) {
-    for (size_t i = 0; i < list.length; ++i) {
-        // ignore ident, that should be freed by token freer
-        if (list.elems[i].type == ASTLIST_STRING) {
-            free(list.elems[i].data.string.elems);
-        }
-    }
-    free(list.elems);
+    list_astconcat_free(list.elems);
 }
 
 // doesn't free some lexer stuff copied from tokens
-void free_actions (ASTAction *actions, size_t actions_len) {
-    for (size_t i = 0; i < actions_len; ++i) {
-        free_astlist(actions[i].reqs);
-        free_astlist(actions[i].commands);
-        free_astlist(actions[i].updates);
+void free_actions (LLAction actions) {
+    FOREACH (LLActionNode, action, actions) {
+        free_astlist(action->data.reqs);
+        free_astlist(action->data.commands);
+        free_astlist(action->data.updates);
     }
-    free(actions);
+    list_action_free(actions);
 }

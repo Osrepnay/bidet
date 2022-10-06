@@ -1,37 +1,30 @@
 #include <stddef.h>
 #include "lexer.h"
+#include "list.h"
 
-// string types, just ident and string for now
+// type to maybe be concatted
 typedef struct {
     enum {
-        STRING_IDENT,
-        STRING_INTERPOL_STRING
+        CATEE_IDENT,
+        CATEE_INTERPOL_STRING
     } type;
     union {
         char *ident;
         InterpolString interpol_string;
     } data;
-} PossString;
+} ASTCatee;
+
+GENLIST_TYPE(ASTCatee, ASTCatee, astcatee)
+
+// ident, string, concat string
+typedef struct {
+    LLASTCatee catee;
+} ASTConcat;
+
+GENLIST_TYPE(ASTConcat, ASTConcat, astconcat)
 
 typedef struct {
-    size_t length;
-    PossString *elems;
-} ASTConcatString;
-
-typedef struct {
-    enum {
-        ASTLIST_IDENT,
-        ASTLIST_STRING
-    } type;
-    union {
-        char *ident;
-        ASTConcatString string;
-    } data;
-} ASTListElem;
-
-typedef struct {
-    size_t length;
-    ASTListElem *elems;
+    LLASTConcat elems;
 } ASTList;
 
 typedef struct {
