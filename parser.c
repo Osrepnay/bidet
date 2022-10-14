@@ -81,18 +81,13 @@ static void synchronize (ParseState *s) {
 
 // parses concatenated strings concatenated with the concatenation operator, + (concatenation operator)
 static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
-    // first check first element
-    Token first;
-    TRYBOOL(peek(s, &first));
-    TRYBOOL(first.type == IDENT || first.type == STRING);
+    TRYBOOL(take_token_ignore(s, IDENT) || take_token_ignore(s, STRING));
 
     concat_str->catee = list_new();
     Token concat;
-    do {
+    while (take_token(s, CONCAT, &concat)) {
         Token str;
-        TRYBOOL_R(next(s, &str),
-            list_free(concat_str->catee),
-            expected_err(s, s->offset, "string or identifier"));
+        TRYBOOL_R(peek(s, &str), str.type = -1); // dirty hack
         list_push(&concat_str->catee, malloc(sizeof(ASTCatee)));
         switch(str.type) {
             case IDENT:
@@ -109,10 +104,11 @@ static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
                 break;
             default:
                 list_free(concat_str->catee);
-                expected_err(s, s->offset - 1, "string or identifier");
+                expected_err(s, s->offset, "string or identifier");
                 return false;
         }
-    } while (take_token(s, CONCAT, &concat));
+        ++s->offset;
+    }
 
     return true;
 }
@@ -122,8 +118,7 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
     // find elements
     Token next_tok; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &next_tok),
-        expected_err(s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek(s, &next_tok), expected_err(s, s->offset, "list element or close bracket"));
 
     list->elems = list_new();
     if (next_tok.type == BRACKET_CLOSE) { // no length
@@ -133,14 +128,13 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
     Token comma;
     do {
-        ASTConcat *concat_str = malloc(sizeof(ASTConcat));
-        TRYBOOL_R(parse_concat_string(s, concat_str),
+        list_push(&list->elems, malloc(sizeof(ASTConcat)));
+        TRYBOOL_R(parse_concat_string(s, list->elems.last->data),
             list_free(list->elems),
             expected_err(s, s->offset, "list element"));
-        list_push(&list->elems, concat_str);
 
         TRYBOOL_R(take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
-            list_new(list->elems),
+            list_free(list->elems),
             expected_err(s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
 
