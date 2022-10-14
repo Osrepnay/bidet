@@ -86,28 +86,29 @@ static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
     TRYBOOL(peek(s, &first));
     TRYBOOL(first.type == IDENT || first.type == STRING);
 
-    concat_str->catee = list_astcatee_new();
+    concat_str->catee = list_new();
     Token concat;
     do {
         Token str;
         TRYBOOL_R(next(s, &str),
-            list_astcatee_free(concat_str->catee),
+            list_free(concat_str->catee),
             expected_err(s, s->offset, "string or identifier"));
+        list_push(&concat_str->catee, malloc(sizeof(ASTCatee)));
         switch(str.type) {
             case IDENT:
-                list_astcatee_push(&concat_str->catee, (ASTCatee) {
+                *(ASTCatee *) concat_str->catee.last->data = (ASTCatee) {
                     .type = CATEE_IDENT,
                     .data.ident = str.data.ident
-                });
+                };
                 break;
             case STRING:
-                list_astcatee_push(&concat_str->catee, (ASTCatee) {
+                *(ASTCatee *) concat_str->catee.last->data = (ASTCatee) {
                     .type = CATEE_INTERPOL_STRING,
                     .data.interpol_string = str.data.string 
-                });
+                };
                 break;
             default:
-                list_astcatee_free(concat_str->catee);
+                list_free(concat_str->catee);
                 expected_err(s, s->offset - 1, "string or identifier");
                 return false;
         }
@@ -124,7 +125,7 @@ static bool parse_list (ParseState *s, ASTList *list) {
     TRYBOOL_R(peek(s, &next_tok),
         expected_err(s, s->offset, "list element or close bracket"));
 
-    list->elems = list_astconcat_new();
+    list->elems = list_new();
     if (next_tok.type == BRACKET_CLOSE) { // no length
         ++s->offset;
         return true;
@@ -132,14 +133,14 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
     Token comma;
     do {
-        ASTConcat concat_str;
-        TRYBOOL_R(parse_concat_string(s, &concat_str),
-            list_astconcat_free(list->elems),
+        ASTConcat *concat_str = malloc(sizeof(ASTConcat));
+        TRYBOOL_R(parse_concat_string(s, concat_str),
+            list_free(list->elems),
             expected_err(s, s->offset, "list element"));
-        list_astconcat_push(&list->elems, concat_str);
+        list_push(&list->elems, concat_str);
 
         TRYBOOL_R(take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
-            list_astconcat_new(list->elems),
+            list_new(list->elems),
             expected_err(s, s->offset, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
 
@@ -163,7 +164,7 @@ static bool parse_action (ParseState *s, ASTAction *action) {
     return true;
 }
 
-bool parse (Prog prog, const Token *tokens, size_t tokens_len, LLAction *actions) {
+bool parse (Prog prog, const Token *tokens, size_t tokens_len, LList *actions) {
     ParseState state = (ParseState) {
         .prog = prog,
         .tokens = tokens,
@@ -174,29 +175,29 @@ bool parse (Prog prog, const Token *tokens, size_t tokens_len, LLAction *actions
     // we don't want to exit right away after parse_action fails because we'll miss all the other errors
     bool return_res = true;
 
-    *actions = list_action_new();
+    *actions = list_new();
     while (state.offset < state.tokens_len) {
         ASTAction action;
         if (!parse_action(&state, &action)) {
             return_res = false;
             synchronize(&state);
         }
-        list_action_push(actions, action);
+        list_push(actions, &action);
     }
 
     return return_res;
 }
 
 static void free_astlist (ASTList list) {
-    list_astconcat_free(list.elems);
+    list_free(list.elems);
 }
 
 // doesn't free some lexer stuff copied from tokens
-void free_actions (LLAction actions) {
-    FOREACH (LLActionNode, action, actions) {
-        free_astlist(action->data.reqs);
-        free_astlist(action->data.commands);
-        free_astlist(action->data.updates);
+void free_actions (LList actions) {
+    FOREACH(ASTAction, action, actions) {
+        free_astlist(action.reqs);
+        free_astlist(action.commands);
+        free_astlist(action.updates);
     }
-    list_action_free(actions);
+    list_free(actions);
 }

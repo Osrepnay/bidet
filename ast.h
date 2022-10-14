@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include "lexer.h"
-#include "list.h"
 
 // type to maybe be concatted
 typedef struct {
@@ -14,17 +13,13 @@ typedef struct {
     } data;
 } ASTCatee;
 
-GENLIST_TYPE(ASTCatee, ASTCatee, astcatee)
-
 // ident, string, concat string
 typedef struct {
-    LLASTCatee catee;
+    LList catee;
 } ASTConcat;
 
-GENLIST_TYPE(ASTConcat, ASTConcat, astconcat)
-
 typedef struct {
-    LLASTConcat elems;
+    LList elems;
 } ASTList;
 
 typedef struct {

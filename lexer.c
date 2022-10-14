@@ -116,7 +116,7 @@ static bool lex_ident (LexState *s, Token *tok) {
     // then start writing to string
     char *ident = malloc(num_chars + 1);
     for (size_t i = 0; i < num_chars; ++i) {
-        TRYBOOL_R(next(s, ident + i), *s = s_save);
+        next(s, ident + i);
     }
     ident[num_chars] = '\0';
 
@@ -164,42 +164,41 @@ static bool lex_string (LexState *s, Token *tok) {
     LexState s_save = *s;
     InterpolString str = (InterpolString) {
         .backticks = backticks,
-        .parts = list_interpolpart_new()
+        .parts = list_new()
     };
 
     size_t curr_used = 1;
     size_t curr_cap = 8;
-    InterpolPart curr_part = (InterpolPart) {
-        .type = INTERPOL_STRING,
-        .data = malloc(curr_cap)
-    };
+    char *curr_str = malloc(curr_cap);
     while (!lex_quote_end(s, backticks)) {
         // string interpolation
         if (take_chars(s, "$(")) {
             if (curr_used > 1) {
-                list_interpolpart_push(&str.parts, curr_part);
+                list_push(&str.parts, malloc(sizeof(InterpolPart)));
+                *(InterpolPart *) str.parts.last->data = (InterpolPart) {
+                    .type = INTERPOL_STRING,
+                    .data = curr_str
+                };
                 curr_used = 1;
                 curr_cap = 8;
-                curr_part = (InterpolPart) {
-                    .type = INTERPOL_STRING,
-                    .data = malloc(curr_cap)
-                };
+                curr_str = malloc(curr_cap);
             }
             Token ident;
-            TRYBOOL_R(lex_ident(s, &ident), list_interpolpart_free(str.parts), *s = s_save);
-            list_interpolpart_push(&str.parts, (InterpolPart) {
+            TRYBOOL_R(lex_ident(s, &ident), list_free(str.parts), *s = s_save);
+            list_push(&str.parts, malloc(sizeof(InterpolPart)));
+            *(InterpolPart *) str.parts.last->data = (InterpolPart) {
                 .type = INTERPOL_IDENT,
                 .data = ident.data.ident
-            });
+            };
 
-            TRYBOOL_R(take_char(s, ')'), list_interpolpart_free(str.parts), *s = s_save);
+            TRYBOOL_R(take_char(s, ')'), list_free(str.parts), *s = s_save);
         }
         char c;
-        TRYBOOL_R(next(s, &c), list_interpolpart_free(str.parts), *s = s_save);
-        push_str(curr_part.data, &curr_used, &curr_cap, c);
+        TRYBOOL_R(next(s, &c), list_free(str.parts), *s = s_save);
+        push_str(curr_str, &curr_used, &curr_cap, c);
     }
     if (curr_used > 1) {
-        list_interpolpart_push(&str.parts, curr_part);
+        list_push(&str.parts, curr_str);
     }
 
     tok->type = STRING;
@@ -273,10 +272,10 @@ void free_tokens (Token *tokens, size_t tokens_len) {
         if (tokens[i].type == IDENT) {
             free(tokens[i].data.ident);
         } else if (tokens[i].type == STRING) {
-            FOREACH (LLInterpolPartNode, part, tokens[i].data.string.parts) {
-                free(part->data.data);
+            FOREACH (InterpolPart, part, tokens[i].data.string.parts) {
+                free(part.data);
             }
-            list_interpolpart_free(tokens[i].data.string.parts);
+            list_free(tokens[i].data.string.parts);
         }
     }
     free(tokens);

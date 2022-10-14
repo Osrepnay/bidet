@@ -22,12 +22,10 @@ typedef struct {
     char *data;
 } InterpolPart;
 
-GENLIST_TYPE(InterpolPart, InterpolPart, interpolpart)
-
 // interpolated string
 typedef struct {
     size_t backticks;
-    LLInterpolPart parts;
+    LList parts;
 } InterpolString; // wee woo wee woo
 
 typedef struct {
