@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "list.h"
 #include "prog.h"
+#include "slice.h"
 
 typedef enum {
     ARROW,
@@ -19,7 +20,7 @@ typedef struct {
         INTERPOL_IDENT,
         INTERPOL_STRING
     } type;
-    char *data;
+    StringSlice data;
 } InterpolPart;
 
 // interpolated string
@@ -31,7 +32,7 @@ typedef struct {
 typedef struct {
     TokenType type;
     union {
-        char *ident;
+        StringSlice ident;
         InterpolString string;
     } data;
     size_t offset;

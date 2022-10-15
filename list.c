@@ -16,3 +16,14 @@ void list_push (LList *list, void *elem) {
         list->head = list->last;
     }
 }
+
+// converts one node to a full list
+LList node_to_list (LLNode *head) {
+    LLNode *last = head;
+    LLNode *end = head->next;
+    for (; end != NULL; end = end->next) last = end;
+    return (LList) {
+        .head = head,
+        .last = last
+    };
+}

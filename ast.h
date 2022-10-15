@@ -8,7 +8,7 @@ typedef struct {
         CATEE_INTERPOL_STRING
     } type;
     union {
-        char *ident;
+        StringSlice ident;
         InterpolString interpol_string;
     } data;
 } ASTCatee;
@@ -24,7 +24,7 @@ typedef struct {
 
 typedef struct {
     ASTList reqs;
-    char *name;
+    StringSlice name;
     ASTList commands;
     ASTList updates;
 } ASTAction;

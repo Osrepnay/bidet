@@ -96,7 +96,7 @@ static bool valid_ident_char (char c) {
 static bool lex_ident (LexState *s, Token *tok) {
     LexState s_save = *s; // save for resetting
 
-    // first find number of chars
+    // find number of chars
     size_t num_chars = 0;
     char ichar;
     TRYBOOL(next(s, &ichar));
@@ -106,22 +106,14 @@ static bool lex_ident (LexState *s, Token *tok) {
             break;
         }
     }
-    *s = s_save;
 
     // first character isn't valid
     if (num_chars == 0) {
         return false;
     }
 
-    // then start writing to string
-    char *ident = malloc(num_chars + 1);
-    for (size_t i = 0; i < num_chars; ++i) {
-        next(s, ident + i);
-    }
-    ident[num_chars] = '\0';
-
     tok->type = IDENT;
-    tok->data.ident = ident;
+    tok->data.ident = str_to_slice(s->prog.text, s_save.offset, num_chars);
     tok->offset = s_save.offset;
     tok->length = num_chars;
     return true;
@@ -167,21 +159,18 @@ static bool lex_string (LexState *s, Token *tok) {
         .parts = list_new()
     };
 
-    size_t curr_used = 1;
-    size_t curr_cap = 8;
-    char *curr_str = malloc(curr_cap);
+    size_t str_section_len = 0;
     while (!lex_quote_end(s, backticks)) {
         // string interpolation
         if (take_chars(s, "$(")) {
-            if (curr_used > 1) {
+            // dont want empty strings
+            if (str_section_len > 0) {
                 list_push(&str.parts, malloc(sizeof(InterpolPart)));
                 *(InterpolPart *) str.parts.last->data = (InterpolPart) {
                     .type = INTERPOL_STRING,
-                    .data = curr_str
+                    .data = str_to_slice(s->prog.text, s_save.offset, str_section_len)
                 };
-                curr_used = 1;
-                curr_cap = 8;
-                curr_str = malloc(curr_cap);
+                str_section_len = 0;
             }
             Token ident;
             TRYBOOL_R(lex_ident(s, &ident), list_free(str.parts), *s = s_save);
@@ -195,10 +184,14 @@ static bool lex_string (LexState *s, Token *tok) {
         }
         char c;
         TRYBOOL_R(next(s, &c), list_free(str.parts), *s = s_save);
-        push_str(curr_str, &curr_used, &curr_cap, c);
+        ++str_section_len;
     }
-    if (curr_used > 1) {
-        list_push(&str.parts, curr_str);
+    if (str_section_len > 0) {
+        list_push(&str.parts, malloc(sizeof(InterpolPart)));
+        *(InterpolPart *) str.parts.last->data = (InterpolPart) {
+            .type = INTERPOL_STRING,
+            .data = str_to_slice(s->prog.text, s_save.offset, str_section_len)
+        };
     }
 
     tok->type = STRING;
@@ -269,12 +262,7 @@ bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
 // frees tokens from lex given tokens and length
 void free_tokens (Token *tokens, size_t tokens_len) {
     for (size_t i = 0; i < tokens_len; ++i) {
-        if (tokens[i].type == IDENT) {
-            free(tokens[i].data.ident);
-        } else if (tokens[i].type == STRING) {
-            FOREACH (InterpolPart, part, tokens[i].data.string.parts) {
-                free(part.data);
-            }
+        if (tokens[i].type == STRING) {
             list_free(tokens[i].data.string.parts);
         }
     }

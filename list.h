@@ -14,8 +14,8 @@ typedef struct {
 LList list_new ();
 
 void list_push (LList *, void *);
-
 void list_free (LList);
+LList node_to_list (LLNode *);
 
 #define FOREACH(type, var, list) \
     type var; /* hope you didnt use the same name twice! (maybe use that local struct trick?) */ \
