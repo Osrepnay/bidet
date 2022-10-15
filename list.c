@@ -17,6 +17,15 @@ void list_push (LList *list, void *elem) {
     }
 }
 
+void list_free (LList list) {
+    LLNode *node = list.head;
+    while (node != NULL) {
+        LLNode *tmp = node;
+        node = node->next;
+        free(tmp);
+    }
+}
+
 // converts one node to a full list
 LList node_to_list (LLNode *head) {
     LLNode *last = head;

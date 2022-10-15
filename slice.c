@@ -5,11 +5,7 @@
 
 char *slice_to_str (StringSlice slice) {
     char *str = malloc(slice.length + 1);
-    slice.back += slice.start;
-    char *c = str;
-    for (; slice.length >= 0; --slice.length, ++slice.back, ++c) {
-        *c = *slice.back;
-    }
+    strncpy(str, slice.back + slice.start, slice.length);
     return str;
 }
 
@@ -18,6 +14,14 @@ StringSlice str_to_slice (const char *str, size_t start, size_t length) {
     return (StringSlice) {
         .start = start,
         .length = length,
+        .back = str
+    };
+}
+
+StringSlice str_to_slice_raw (const char *str) {
+    return (StringSlice) {
+        .start = 0,
+        .length = strlen(str),
         .back = str
     };
 }

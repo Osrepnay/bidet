@@ -8,3 +8,4 @@ typedef struct {
 
 char *slice_to_str (StringSlice);
 StringSlice str_to_slice (const char *, size_t, size_t);
+StringSlice str_to_slice_raw (const char *);

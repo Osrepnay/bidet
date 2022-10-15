@@ -141,14 +141,6 @@ static bool lex_quote_end (LexState *s, size_t backticks) {
     return true;
 }
 
-static void push_str (char *str, size_t *used, size_t *cap, char push) {
-    if (used == cap) {
-        str = realloc(str, *cap *= 2);
-    }
-    str[*used - 1] = push;
-    str[(*used)++] = '\0';
-}
-
 static bool lex_string (LexState *s, Token *tok) {
     size_t backticks = 0;
     TRYBOOL(lex_quote_start(s, &backticks));
