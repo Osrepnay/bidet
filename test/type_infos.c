@@ -140,13 +140,18 @@ int astaction_equal_cb (const void *expd_v, const void *got_v, void *udata) {
 
 int astlist_printf (ASTList t) {
     TRYPOS(printf("["));
+    bool first = true;
     FOREACH(ASTConcat, concat, t.elems) {
-        bool first = true;
+        if (!first) {
+            TRYPOS(printf(", "));
+        }
+        first = false;
+        bool cfirst = true;
         FOREACH(ASTCatee, catee, concat.catee) {
-            if (!first) {
+            if (!cfirst) {
                 TRYPOS(printf(" + "));
             }
-            first = false;
+            cfirst = false;
             if (catee.type == CATEE_IDENT) {
                 TRYPOS(printf("%s", slice_to_str(catee.data.ident)));
             } else {

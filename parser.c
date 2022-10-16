@@ -81,11 +81,12 @@ static void synchronize (ParseState *s) {
 
 // parses concatenated strings concatenated with the concatenation operator, + (concatenation operator)
 static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
-    TRYBOOL(take_token_ignore(s, IDENT) || take_token_ignore(s, STRING));
+    Token first;
+    TRYBOOL(peek(s, &first) && (first.type == IDENT || first.type == STRING));
 
     concat_str->catee = list_new();
     Token concat;
-    while (take_token(s, CONCAT, &concat)) {
+    do {
         Token str;
         TRYBOOL_R(peek(s, &str), str.type = -1); // dirty hack
         list_push(&concat_str->catee, malloc(sizeof(ASTCatee)));
@@ -108,7 +109,7 @@ static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
                 return false;
         }
         s->pos = s->pos->next;
-    }
+    } while (take_token(s, CONCAT, &concat));
 
     return true;
 }
@@ -170,27 +171,23 @@ bool parse (Prog prog, LList tokens, LList *actions) {
 
     *actions = list_new();
     while (state.pos != NULL) {
-        ASTAction action;
-        if (!parse_action(&state, &action)) {
+        list_push(actions, malloc(sizeof(ASTAction)));
+        if (!parse_action(&state, actions->last->data)) {
             return_res = false;
             synchronize(&state);
         }
-        list_push(actions, &action);
     }
 
     return return_res;
 }
 
-static void free_astlist (ASTList list) {
-    list_free(list.elems);
-}
-
 // doesn't free some lexer stuff copied from tokens
+// free_tokens does that
 void free_actions (LList actions) {
     FOREACH(ASTAction, action, actions) {
-        free_astlist(action.reqs);
-        free_astlist(action.commands);
-        free_astlist(action.updates);
+        list_free(action.reqs.elems);
+        list_free(action.commands.elems);
+        list_free(action.updates.elems);
     }
     list_free(actions);
 }

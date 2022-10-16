@@ -216,15 +216,11 @@ bool lex (Prog prog, LList *tokens) {
         bool one_succeeded = false;
         for (size_t i = 0; i < sizeof(lexers) / sizeof(lexers[0]); ++i) {
             Token *tok = malloc(sizeof(Token));
-            size_t old = state.offset;
             if (lexers[i](&state, tok)) {
                 one_succeeded = true;
                 list_push(tokens, tok);
                 take_whitespace(&state);
                 break;
-            } else {
-#include <assert.h>
-                assert(old == state.offset);
             }
         }
         // no lexers worked

@@ -84,7 +84,6 @@ TEST string_test (void) {
     ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str.head->data, &token_type_info, NULL);
 
     free_tokens(str);
-    printf("tmp");
     PASS();
 }
 
