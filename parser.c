@@ -24,39 +24,39 @@ static char *type_to_string (TokenType type) {
 
 typedef struct {
     Prog prog;
-    const Token *tokens;
-    size_t tokens_len;
-    size_t offset;
+    LList tokens;
+    LLNode *pos;
 } ParseState;
 
 // reports error at s's offset
-static void expected_err (const ParseState *s, size_t offset, const char *expected) {
-    char *got = offset >= s->tokens_len ? "EOF" : type_to_string(s->tokens[offset].type);
+static void expected_err (const ParseState *s, const char *expected) {
+    Token *pos_data = s->pos->data;
+    char *got = s->pos == NULL ? "EOF" : type_to_string(pos_data->type);
     char *message = malloc(sizeof("expected , got \n") + strlen(expected) + strlen(got));
     sprintf(message, "expected %s, got %s\n", expected, got);
-    char *err = fmt_err(s->prog, s->tokens[offset].offset, message);
+    char *err = fmt_err(s->prog, pos_data->offset, message);
     fputs(err, stderr);
     free(err);
 }
 
 static bool peek (ParseState *s, Token *tok) {
-    TRYBOOL(s->offset != s->tokens_len);
-    *tok = s->tokens[s->offset];
+    TRYBOOL(s->pos != NULL);
+    *tok = *(Token *) s->pos->data;
     return true;
 }
 
 static bool next (ParseState *s, Token *tok) {
     TRYBOOL(peek(s, tok));
-    ++s->offset;
+    s->pos = s->pos->next;
     return true;
 }
 
 static bool take_token (ParseState *s, TokenType type, Token *tok) {
-    TRYBOOL(next(s, tok));
+    TRYBOOL(peek(s, tok));
     if (tok->type != type) {
-        --s->offset;
         return false;
     } else {
+        s->pos = s->pos->next;
         return true;
     }
 }
@@ -64,11 +64,11 @@ static bool take_token (ParseState *s, TokenType type, Token *tok) {
 // identical to take_token except it doesn't return the result
 static bool take_token_ignore (ParseState *s, TokenType type) {
     Token tok;
-    TRYBOOL(next(s, &tok));
+    TRYBOOL(peek(s, &tok));
     if (tok.type != type) {
-        --s->offset;
         return false;
     } else {
+        s->pos = s->pos->next;
         return true;
     }
 }
@@ -104,10 +104,10 @@ static bool parse_concat_string (ParseState *s, ASTConcat *concat_str) {
                 break;
             default:
                 list_free(concat_str->catee);
-                expected_err(s, s->offset, "string or identifier");
+                expected_err(s, "string or identifier");
                 return false;
         }
-        ++s->offset;
+        s->pos = s->pos->next;
     }
 
     return true;
@@ -118,11 +118,11 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
     // find elements
     Token next_tok; // either close bracket or first element of list
-    TRYBOOL_R(peek(s, &next_tok), expected_err(s, s->offset, "list element or close bracket"));
+    TRYBOOL_R(peek(s, &next_tok), expected_err(s, "list element or close bracket"));
 
     list->elems = list_new();
     if (next_tok.type == BRACKET_CLOSE) { // no length
-        ++s->offset;
+        s->pos = s->pos->next;
         return true;
     }
 
@@ -131,11 +131,11 @@ static bool parse_list (ParseState *s, ASTList *list) {
         list_push(&list->elems, malloc(sizeof(ASTConcat)));
         TRYBOOL_R(parse_concat_string(s, list->elems.last->data),
             list_free(list->elems),
-            expected_err(s, s->offset, "list element"));
+            expected_err(s, "list element"));
 
         TRYBOOL_R(take_token(s, COMMA, &comma) || take_token(s, BRACKET_CLOSE, &comma),
             list_free(list->elems),
-            expected_err(s, s->offset, "comma or close bracket"));
+            expected_err(s, "comma or close bracket"));
     } while (comma.type != BRACKET_CLOSE);
 
     return true;
@@ -143,34 +143,33 @@ static bool parse_list (ParseState *s, ASTList *list) {
 
 static bool parse_action (ParseState *s, ASTAction *action) {
     TRYBOOL(parse_list(s, &action->reqs));
-    TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(s, s->offset, "arrow"));
+    TRYBOOL_R(take_token_ignore(s, ARROW), expected_err(s, "arrow"));
 
     Token name_tok;
-    TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(s, s->offset, "identifier"));
+    TRYBOOL_R(take_token(s, IDENT, &name_tok), expected_err(s, "identifier"));
     action->name = name_tok.data.ident;
     TRYBOOL(parse_list(s, &action->commands));
 
     TRYBOOL(take_token_ignore(s, ARROW));
     TRYBOOL(parse_list(s, &action->updates));
 
-    TRYBOOL_R(take_token_ignore(s, SEMICOLON), expected_err(s, s->offset, "semicolon"));
+    TRYBOOL_R(take_token_ignore(s, SEMICOLON), expected_err(s, "semicolon"));
 
     return true;
 }
 
-bool parse (Prog prog, const Token *tokens, size_t tokens_len, LList *actions) {
+bool parse (Prog prog, LList tokens, LList *actions) {
     ParseState state = (ParseState) {
         .prog = prog,
         .tokens = tokens,
-        .tokens_len = tokens_len,
-        .offset = 0
+        .pos = tokens.head
     };
 
     // we don't want to exit right away after parse_action fails because we'll miss all the other errors
     bool return_res = true;
 
     *actions = list_new();
-    while (state.offset < state.tokens_len) {
+    while (state.pos != NULL) {
         ASTAction action;
         if (!parse_action(&state, &action)) {
             return_res = false;

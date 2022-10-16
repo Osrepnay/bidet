@@ -97,14 +97,14 @@ static bool lex_ident (LexState *s, Token *tok) {
     LexState s_save = *s; // save for resetting
 
     // find number of chars
-    size_t num_chars = 0;
     char ichar;
-    TRYBOOL(next(s, &ichar));
-    while (valid_ident_char(ichar)) {
-        ++num_chars;
-        if (!next(s, &ichar)) {
+    size_t num_chars = 0;
+    while (next(s, &ichar)) {
+        if (!valid_ident_char(ichar)) {
+            --s->offset;
             break;
         }
+        ++num_chars;
     }
 
     // first character isn't valid
@@ -142,15 +142,16 @@ static bool lex_quote_end (LexState *s, size_t backticks) {
 }
 
 static bool lex_string (LexState *s, Token *tok) {
+    LexState s_save = *s;
+
     size_t backticks = 0;
     TRYBOOL(lex_quote_start(s, &backticks));
-
-    LexState s_save = *s;
     InterpolString str = (InterpolString) {
         .backticks = backticks,
         .parts = list_new()
     };
 
+    size_t str_section_start = s_save.offset + backticks + 1;
     size_t str_section_len = 0;
     while (!lex_quote_end(s, backticks)) {
         // string interpolation
@@ -160,7 +161,7 @@ static bool lex_string (LexState *s, Token *tok) {
                 list_push(&str.parts, malloc(sizeof(InterpolPart)));
                 *(InterpolPart *) str.parts.last->data = (InterpolPart) {
                     .type = INTERPOL_STRING,
-                    .data = str_to_slice(s->prog.text, s_save.offset, str_section_len)
+                    .data = str_to_slice(s->prog.text, str_section_start, str_section_len)
                 };
                 str_section_len = 0;
             }
@@ -173,6 +174,7 @@ static bool lex_string (LexState *s, Token *tok) {
             };
 
             TRYBOOL_R(take_char(s, ')'), list_free(str.parts), *s = s_save);
+            str_section_start = s->offset;
         }
         char c;
         TRYBOOL_R(next(s, &c), list_free(str.parts), *s = s_save);
@@ -182,7 +184,7 @@ static bool lex_string (LexState *s, Token *tok) {
         list_push(&str.parts, malloc(sizeof(InterpolPart)));
         *(InterpolPart *) str.parts.last->data = (InterpolPart) {
             .type = INTERPOL_STRING,
-            .data = str_to_slice(s->prog.text, s_save.offset, str_section_len)
+            .data = str_to_slice(s->prog.text, str_section_start, str_section_len)
         };
     }
 
@@ -198,40 +200,31 @@ static bool take_whitespace (LexState *s) {
     return true;
 }
 
-// push to tokens, given length and capacity
-static void push_token (Token token, Token **tokens, size_t *len, size_t *cap) {
-    // expand capacity when on the edge of overflowing
-    if (*len >= *cap) {
-        *tokens = realloc(*tokens, sizeof(Token) * (*cap *= 2));
-    }
-    (*tokens)[(*len)++] = token;
-}
-
-bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
+bool lex (Prog prog, LList *tokens) {
     // starting state
     LexState state = (LexState) {
         .prog = prog,
         .offset = 0
     };
-
-    size_t tokens_capacity = 2;
-    *tokens = malloc(sizeof(Token) * tokens_capacity);
-    *tokens_len = 0;
-
     // array of possible lexers
     bool (*lexers[3]) (LexState *, Token *) = { lex_symbol, lex_string, lex_ident };
+    *tokens = list_new();
 
     // whether lexer failed while lexing
     bool failed = false;
     while (state.prog.text[state.offset] != '\0') {
         bool one_succeeded = false;
         for (size_t i = 0; i < sizeof(lexers) / sizeof(lexers[0]); ++i) {
-            Token tok;
-            if (lexers[i](&state, &tok)) {
+            Token *tok = malloc(sizeof(Token));
+            size_t old = state.offset;
+            if (lexers[i](&state, tok)) {
                 one_succeeded = true;
-                push_token(tok, tokens, tokens_len, &tokens_capacity);
+                list_push(tokens, tok);
                 take_whitespace(&state);
                 break;
+            } else {
+#include <assert.h>
+                assert(old == state.offset);
             }
         }
         // no lexers worked
@@ -252,11 +245,11 @@ bool lex (Prog prog, Token **tokens, size_t *tokens_len) {
 }
 
 // frees tokens from lex given tokens and length
-void free_tokens (Token *tokens, size_t tokens_len) {
-    for (size_t i = 0; i < tokens_len; ++i) {
-        if (tokens[i].type == STRING) {
-            list_free(tokens[i].data.string.parts);
+void free_tokens (LList tokens) {
+    FOREACH(Token, tok, tokens) {
+        if (tok.type == STRING) {
+            list_free(tok.data.string.parts);
         }
     }
-    free(tokens);
+    list_free(tokens);
 }

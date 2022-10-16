@@ -7,13 +7,12 @@ static greatest_type_info astaction_type_info = { .equal = astaction_equal_cb, .
 TEST action_test (void) {
     Prog prog = (Prog) { .filename = "test", .text = "[foo, bar] > foobar [] > [];" };
 
-    Token *action_toks;
-    size_t action_toks_len = 0;
+    LList action_toks;
     // shouldn't really fail because lexer tests should run first
-    ASSERTm("lex should succeed on action", lex(prog, &action_toks, &action_toks_len));
+    ASSERTm("lex should succeed on action", lex(prog, &action_toks));
 
     LList actions;
-    ASSERTm("parse should succeed on action", parse(prog, action_toks, action_toks_len, &actions));
+    ASSERTm("parse should succeed on action", parse(prog, action_toks, &actions));
     ASSERT_EQm("parse should only take one action", actions.head->next, NULL);
     ASTAction *action = actions.head->data;
 
@@ -48,7 +47,7 @@ TEST action_test (void) {
     };
     ASSERT_EQUAL_Tm("parse should parse action correctly", &correct_action, action, &astaction_type_info, NULL);
     free_actions(actions);
-    free_tokens(action_toks, action_toks_len);
+    free_tokens(action_toks);
 
     PASS();
 }

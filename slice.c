@@ -6,6 +6,7 @@
 char *slice_to_str (StringSlice slice) {
     char *str = malloc(slice.length + 1);
     strncpy(str, slice.back + slice.start, slice.length);
+    str[slice.length] = '\0';
     return str;
 }
 

@@ -39,5 +39,5 @@ typedef struct {
     size_t length;
 } Token;
 
-bool lex (Prog prog, Token **, size_t *);
-void free_tokens (Token *, size_t);
+bool lex (Prog, LList *);
+void free_tokens (LList);

@@ -15,28 +15,27 @@ TEST symbol_test (void) {
     };
     Prog prog = (Prog) { .filename = "test", .text = ">[],+;" };
     // lex returns an array of tokens, but we only use the first element
-    Token *sym;
-    size_t len = 0;
-    ASSERTm("lex should succeed on symbols", lex(prog, &sym, &len));
-    ASSERT_EQm("lex should lex the right number of symbols", 6, len);
+    LList syms;
+    ASSERTm("lex should succeed on symbols", lex(prog, &syms));
+    ASSERT_EQm("lex should lex the right number of symbols", 6, list_len(syms));
 
     char *message = malloc(sizeof("lex should lex x correctly"));
     char characters[6] = { '>', '[', ']', ',', '+', ';' };
-    for (int i = 0; i < 6; ++i) {
+    LLNode *sym_node = syms.head;
+    for (int i = 0; i < 6; sym_node = sym_node->next, ++i) {
         sprintf(message, "lex should lex %c correctly", characters[i]);
-        ASSERT_EQUAL_Tm(message, answers + i, sym + i, &token_type_info, NULL);
+        ASSERT_EQUAL_Tm(message, answers + i, sym_node->data, &token_type_info, NULL);
     }
     free(message);
 
-    free_tokens(sym, len);
+    free_tokens(syms);
     PASS();
 }
 
 TEST ident_test (void) {
     Prog prog = (Prog) { .filename = "test", .text = "a-b_0" };
-    Token *ident;
-    size_t len = 0;
-    ASSERTm("lex should succeed on identifier", lex(prog, &ident, &len));
+    LList ident;
+    ASSERTm("lex should succeed on identifier", lex(prog, &ident));
 
     Token correct_ident = (Token) {
         .type = IDENT,
@@ -44,17 +43,16 @@ TEST ident_test (void) {
         .offset = 0,
         .length = strlen("a-b_0")
     };
-    ASSERT_EQUAL_Tm("lex should lex identifier correctly", &correct_ident, ident, &token_type_info, NULL);
+    ASSERT_EQUAL_Tm("lex should lex identifier correctly", &correct_ident, ident.head->data, &token_type_info, NULL);
 
-    free_tokens(ident, len);
+    free_tokens(ident);
     PASS();
 }
 
 TEST string_test (void) {
     Prog prog = (Prog) { .filename = "test", .text = "``'bar 'bar`'$(bar) bar'``" };
-    Token* str;
-    size_t len = 0;
-    ASSERTm("lex should succeed on string", lex(prog, &str, &len));
+    LList str;
+    ASSERTm("lex should succeed on string", lex(prog, &str));
 
     Token correct_str = (Token) {
         .type = STRING,
@@ -83,9 +81,10 @@ TEST string_test (void) {
         .offset = 0,
         .length = strlen("``'bar 'bar`'$(bar) bar'``")
     };
-    ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str, &token_type_info, NULL);
+    ASSERT_EQUAL_Tm("lex should lex string correctly", &correct_str, str.head->data, &token_type_info, NULL);
 
-    free_tokens(str, len);
+    free_tokens(str);
+    printf("tmp");
     PASS();
 }
 

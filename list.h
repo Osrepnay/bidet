@@ -1,5 +1,7 @@
 // linked list
 
+#include <stddef.h>
+
 struct LLNode {
     void *data;
     struct LLNode *next;
@@ -12,10 +14,11 @@ typedef struct {
 } LList;
 
 LList list_new ();
+LList node_to_list (LLNode *);
 
+size_t list_len (LList);
 void list_push (LList *, void *);
 void list_free (LList);
-LList node_to_list (LLNode *);
 
 #define FOREACH(type, var, list) \
     type var; /* hope you didnt use the same name twice! (maybe use that local struct trick?) */ \

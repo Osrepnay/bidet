@@ -91,6 +91,7 @@ int token_printf_cb (const void *t_v, void *udata) {
         TRYPOS(printf(".data.ident = %s, ", slice_to_str(t->data.ident)));
     } else if (t->type == STRING) {
         TRYPOS(printf(".data.string = "));
+        TRYPOS(interpolstring_printf(t->data.string));
         TRYPOS(printf(", "));
     }
     return printf(".offset = %zu, .length = %zu }", t->offset, t->length);
