@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -Wpedantic -std=c99
+CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -g -fsanitize=address
 BD = build
 OBJS = $(BD)/list.o $(BD)/slice.o $(BD)/fmt_error.o $(BD)/lexer.o $(BD)/parser.o
 
@@ -8,7 +8,7 @@ run_tests: build_tests
 
 .PHONY: build_tests
 build_tests: $(BD)/tests.o
-	cc $(CFLAGS) -g -fsanitize=address $(OBJS) $(BD)/type_infos.o $(BD)/lexer_test.o $(BD)/parser_test.o $(BD)/tests.o -o build/tests
+	cc $(CFLAGS) $(OBJS) $(BD)/type_infos.o $(BD)/lexer_test.o $(BD)/parser_test.o $(BD)/tests.o -o build/tests
 
 $(BD)/type_infos.o: test/type_infos.c test/type_infos.h $(BD)/parser.o try.h
 	cc $(CFLAGS) -c test/type_infos.c -o $(BD)/type_infos.o
