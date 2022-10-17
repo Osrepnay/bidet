@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "../parser.h"
 #include "../try.h"
@@ -10,7 +11,12 @@ do { \
 } while (0);
 
 int slice_equal (StringSlice expd, StringSlice got) {
-    return strcmp(slice_to_str(expd), slice_to_str(got)) == 0;
+    char *expds = slice_to_str(expd);
+    char *gots = slice_to_str(got);
+    int cmp = strcmp(expds, gots);
+    free(expds);
+    free(gots);
+    return cmp == 0;
 }
 
 int interpolstring_equal (InterpolString expd, InterpolString got) {

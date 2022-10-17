@@ -221,6 +221,8 @@ bool lex (Prog prog, LList *tokens) {
                 list_push(tokens, tok);
                 take_whitespace(&state);
                 break;
+            } else {
+                free(tok);
             }
         }
         // no lexers worked

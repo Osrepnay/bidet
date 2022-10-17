@@ -185,8 +185,17 @@ bool parse (Prog prog, LList tokens, LList *actions) {
 // free_tokens does that
 void free_actions (LList actions) {
     FOREACH(ASTAction, action, actions) {
+        FOREACH(ASTConcat, rconcat, action.reqs.elems) {
+            list_free(rconcat.catee);
+        }
         list_free(action.reqs.elems);
+        FOREACH(ASTConcat, cconcat, action.commands.elems) {
+            list_free(cconcat.catee);
+        }
         list_free(action.commands.elems);
+        FOREACH(ASTConcat, uconcat, action.updates.elems) {
+            list_free(uconcat.catee);
+        }
         list_free(action.updates.elems);
     }
     list_free(actions);
